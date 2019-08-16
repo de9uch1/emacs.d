@@ -1,0 +1,15 @@
+bookmarks
+custom.el
+elpa/*
+quelpa/*
+tmp/*
+.python-environments/*
+.hg/*
+.hgignore
+*~
+.lsp-session*
+.mc-lists.el
+*.dat
+recentf
+transient
+*.elc
