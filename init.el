@@ -98,7 +98,7 @@
 ;;; Package Management
 ;; package.el
 (require 'package nil t)
-(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
 (add-to-list 'package-archives '("melpa-stable" . "https://stable.melpa.org/packages/") t)
 (package-initialize)
 (when (not (package-installed-p 'use-package))
@@ -348,6 +348,12 @@
                   ("*Warnings*")
                   ("*system-packages*")
                   ("*Async Shell Command*")))
+;; eldoc
+(my:disable-mode global-eldoc-mode)
+(use-package eldoc-overlay
+  :ensure t
+  :config
+  (setq eldoc-idle-delay 30))
 
 ;;; Global Packages
 ;;;; elscreen
@@ -355,7 +361,6 @@
   :ensure t
   :config
   (use-package elscreen-w3m)
-  (use-package elscreen-howm)
   (use-package elscreen-server)
   (use-package elscreen-color-theme)
   (setq elscreen-tab-display-kill-screen nil)
@@ -417,6 +422,7 @@
   (setq company-idle-delay 0.01)
   (setq company-selection-wrap-around t)
   (setq company-minimum-prefix-length 0)
+  (setq company-show-numbers t)
   (use-package company-flx
     :ensure t
     :config
@@ -668,17 +674,25 @@
           (cdr (assoc result rmap)))))))
 
 ;;; Programming Language
+;;;; projectile
+(use-package projectile
+  :ensure t
+  :init
+  (setq projectile-mode t)
+  (setq projectile-enable-caching t)
+)
+
 ;;;; flycheck
 (use-package flycheck
   :ensure t
   :hook ((python-mode) . flycheck-mode)
   :config
-  (use-package flycheck-color-mode-line
-    :ensure t
-    :hook (flycheck-mode . flycheck-color-mode-line-mode))
-  (use-package flycheck-popup-tip
-    :ensure t
-    :hook (flycheck-mode . flycheck-popup-tip-mode))
+  ;; (use-package flycheck-color-mode-line
+  ;;   :ensure t
+  ;;   :hook (flycheck-mode . flycheck-color-mode-line-mode))
+  ;; (use-package flycheck-popup-tip
+  ;;   :ensure t
+  ;;   :hook (flycheck-mode . flycheck-popup-tip-mode))
   (setq flycheck-check-syntax-automatically '(mode-enabled save)))
 
 ;;;; LSP
@@ -688,11 +702,12 @@
          ("M-," . xref-pop-marker-stack)
          ("M-/" . xref-find-references))
   :commands lsp
-  :hook ((python-mode) . #'lsp)
+  :hook ((python-mode sh-mode c++-mode) . #'lsp)
   :custom
   (lsp-prefer-flymake nil)
   (lsp-enable-snippet t)
   (lsp-enable-indentation nil)
+  (lsp-enable-completion-at-point nil)
   :config
   (setq lsp-restart 'auto-restart)
   (use-package company-lsp
@@ -884,6 +899,9 @@
   :ensure t
   :config
   (setq py-outline-minor-mode-p nil)
+  (setq py-current-defun-show nil)
+  (setq py-jump-on-exception nil)
+  (setq py-current-defun-delay 1000)
   )
 
 ;; quickrun
@@ -1118,7 +1136,7 @@
   (setq recentf-exclude '(".recentf"))
   (setq recentf-auto-cleanup 10)
   (setq recentf-auto-save-timer
-        (run-with-idle-timer 300 t 'recentf-save-list))
+        (run-with-idle-timer 3000 t 'recentf-save-list))
   (my:enable-mode recentf-mode)
   (use-package recentf-ext
     :ensure t))
