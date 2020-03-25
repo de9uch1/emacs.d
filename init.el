@@ -35,7 +35,7 @@
 
 ;;; Startup
 ;;;; Tuning and Speed Up:
-(setq gc-cons-percentage 0.6)
+(setq gc-cons-percentage 0.75)
 (setq gc-cons-threshold (* 512 1024 1024))
 (add-hook 'after-init-hook
           `(lambda ()
@@ -317,13 +317,15 @@
   (setq tramp-persistency-file-name (concat my:d:tmp "tramp")))
 ;; dired
 (use-package dired-aux
+  :defer t
   :config
   (use-package dired-async))
 (setq dired-dwim-target t) ;; diredを2つのウィンドウで開いている時に、デフォルトの移動orコピー先をもう一方のdiredで開いているディレクトリにする
 (setq dired-recursive-copies 'always) ;; ディレクトリを再帰的にコピーする
 (setq dired-isearch-filenames t) ;; diredバッファでC-sした時にファイル名だけにマッチするように
 ;; generic-x
-(use-package generic-x)
+(use-package generic-x
+  :defer t)
 ;; ファイルを開いた位置を保存する
 (use-package saveplace
   :config
@@ -348,6 +350,9 @@
                   ("*Warnings*")
                   ("*system-packages*")
                   ("*Async Shell Command*")))
+(use-package windmove
+  :bind (("C-c <left>" . windmove-left)
+         ("C-c <right>" . windmove-right)))
 ;; eldoc
 (my:disable-mode global-eldoc-mode)
 (use-package eldoc-overlay
@@ -360,7 +365,8 @@
 (use-package elscreen
   :ensure t
   :config
-  (use-package elscreen-w3m)
+  (use-package elscreen-w3m
+    :defer t)
   (use-package elscreen-server)
   (use-package elscreen-color-theme)
   (setq elscreen-tab-display-kill-screen nil)
@@ -548,23 +554,22 @@
 
 ;;;; ddskk
 (defvar my:d:skk (concat my:d:nextcloud "app/SKK/"))
-(setq skk-large-jisyo (concat my:d:skk "SKK-JISYO.L+emoji.utf8"))
 (use-package skk
   :ensure ddskk
-  :if (file-exists-p skk-large-jisyo)
   :bind (([hiragana-katakana] . skk-mode)
          ("C-\\" . skk-mode))
   :init
   (setq skk-user-directory my:d:skk
-        skk-jisyo (concat my:d:skk "jisyo.utf8")
         skk-backup-jisyo (concat my:d:tmp "SKK/jisyo.bak")
         skk-study-backup-file (concat my:d:tmp "SKK/study.bak"))
   (setq skk-jisyo-code 'utf-8)
   (setq default-input-method "japanese-skk")
   :config
-  (setq skk-extra-jisyo-file-list
-        (list
-         (concat my:d:skk "SKK-JISYO.JIS3_4")))
+  (setq skk-server-prog (concat (getenv "HOME") "/bin/google-ime-skk"))
+  (setq skk-server-inhibit-startup-server nil)
+  (setq skk-server-host "localhost")
+  (setq skk-server-portnum "55100")
+  (setq skk-server-private-jisyo t)
   ;; (skk-toggle-katakana 'jisx0201-kana)
   ;; SKK を Emacs の input method として使用する
   ;;   `toggle-input-method' (C-\) で DDSKK が起動します
@@ -647,6 +652,7 @@
 (use-package yasnippet
   :ensure t
   :diminish yas-minor-mode
+  :defer t
   :config
   (use-package yasnippet-snippets
     :ensure t)
@@ -737,6 +743,16 @@
   )
 
 ;;;; C, C++
+;; (use-package cquery
+;;   :if (executable-find "cquery")
+;;   :ensure t
+;;   :config
+;;   (setq cquery-executablez (executable-find "cquery")))
+(use-package ccls
+  :if (executable-find "ccls")
+  :ensure t
+  :config
+  (setq ccls-executable (executable-find "ccls")))
 
 ;;;; bison, flex
 (use-package bison-mode
@@ -747,7 +763,8 @@
 
 ;;;; shell script
 (use-package fish-mode
-  :ensure t)
+  :ensure t
+  :defer t)
 (use-package ebuild-mode
   :if my:gentoo-p
   :mode
@@ -798,8 +815,6 @@
 (bind-key "C-c S" 'scheme-other-window)
 
 ;;;; Web
-(use-package web-mode
-  :ensure t)
 (use-package emmet-mode
   :ensure t
   :hook (((sgml-mode css-mode html-mode) . emmet-mode)
@@ -807,6 +822,8 @@
   :bind (:map emmet-mode-keymap
               ("H-i" . emmet-expand-line))
   :config
+  (use-package web-mode
+    :ensure t)
   (setq emmet-indentation 2))
 
 ;;;; Ruby
@@ -949,6 +966,7 @@
 ;;;; Wanderlust -- E-mail client:
 (use-package wl
   :ensure wanderlust
+  :disabled t
   :config
   (use-package mime-def)
   (use-package cp5022x
@@ -1028,6 +1046,7 @@
     (add-to-list 'org-agenda-files (concat org-directory file)))
   (add-to-list 'org-agenda-files (concat my:d:nextcloud "lab/note/lablog.org"))
   (setq org-export-with-toc nil)
+  (setq org-duration-format (quote h:mm))
   ;; org-gcal
   (use-package request
     :ensure t
@@ -1057,6 +1076,7 @@
 ;;;; vc-mode
 ;; mercurial
 (use-package mercurial
+  :disabled t
   :config
   (setq vc-follow-symlinks t)
   (setq vc-handled-backends nil)        ; no use vc-mode
@@ -1064,7 +1084,8 @@
   (remove-hook 'find-file-hook 'vc-find-file-hook)
   (remove-hook 'kill-buffer-hook 'vc-kill-buffer-hook))
 (use-package hgignore-mode
-  :ensure t)
+  :ensure t
+  :defer t)
 ;;;; twittering-mode
 (use-package twittering-mode
   :ensure t
@@ -1122,17 +1143,12 @@
   :config
   (global-git-gutter-mode)
   (setq git-gutter:handled-backends '(git hg)))
-(use-package git-auto-commit-mode
-  :ensure t
-  :init
-  (setq-default gac-automatically-push-p t)
-  ;; (setq-default gac-shell-and " ; and ")
-  (setq-default gac-shell-and " && ")
-  )
 (use-package gitignore-mode
-  :ensure t)
+  :ensure t
+  :defer t)
 (use-package helm-ghq
-  :ensure t)
+  :ensure t
+  :defer t)
 ;;;; open-junk-file
 (use-package open-junk-file
   :ensure t
@@ -1146,7 +1162,7 @@
   (setq recentf-max-menu-items 100)
   (setq recentf-max-saved-items 5000)
   (setq recentf-exclude '(".recentf"))
-  (setq recentf-auto-cleanup 10)
+  (setq recentf-auto-cleanup 100)
   (setq recentf-auto-save-timer
         (run-with-idle-timer 3000 t 'recentf-save-list))
   (my:enable-mode recentf-mode)
