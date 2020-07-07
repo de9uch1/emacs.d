@@ -5,8 +5,8 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi@ai.cs.ehime-u.ac.jp>
 ;; Created: 2018-05-26
-;; Modified: 2019-08-16
-;; Version: 0.0.2
+;; Modified: 2020-07-07
+;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
 ;; Namespace: my:
@@ -54,6 +54,17 @@
   (setq my:gentoo-p t))
 
 ;;; My Functions and Macros -- prefix "my:"
+;;;; not eq
+(defun my:ne (x y &optional comp)
+  (not
+   (if comp
+       (funcall comp x y)
+     (eq x y))))
+;;;; like Python's os.path.join()
+(defun my:join (a b)
+  (concat a
+          (when (my:ne (substring a -1) "/" 'string-equal) "/")
+          b))
 ;;;; my:locate-user-emacs-file
 (defun my:locate-user-emacs-file (x)
   "Expand filename locate-user-emacs-file"
@@ -62,7 +73,7 @@
 (defconst HOME (getenv "HOME"))
 (defun my:locate-home (x)
   "Concat and Expand path from HOME"
-  (expand-file-name (concat HOME "/" x)))
+  (expand-file-name (my:join HOME x)))
 ;;;; mode enable/disable
 (defmacro my:enable-mode (mode)
   `(,mode 1))
@@ -83,14 +94,14 @@
 ;; E-mail Address
 (setq user-mail-address "deguchi@ai.cs.ehime.ac.jp")
 ;;;; Directory --
-;; ~/.emacs.d
-(when load-file-name                    ; emacs -q -l .emacs に対応
+;; $HOME/.emacs.d
+(when load-file-name                    ; for ``emacs -q -l .emacs''
   (setq user-emacs-directory (file-name-directory load-file-name)))
-(defconst my:d:tmp (my:locate-user-emacs-file "tmp/"))
-(defconst my:d:share (my:locate-user-emacs-file "share/"))
+(defconst my:d:tmp (my:locate-user-emacs-file "tmp"))
+(defconst my:d:share (my:locate-user-emacs-file "share"))
 ;; Nextcloud
 (defconst my:d:nextcloud
-  (let ((d '("/Nextcloud/" "/nextcloud/")))
+  (let ((d '("Nextcloud" "nextcloud")))
     (or (cl-find-if
          'file-exists-p
          (mapcar (lambda (x) (my:locate-home x)) d))
@@ -104,7 +115,7 @@
 (when (not (package-installed-p 'use-package))
   (package-refresh-contents)
   (package-install 'use-package))
-(setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3")
+;; (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3")
 
 ;;;; use-package.el
 (unless (require 'use-package nil t)
@@ -135,52 +146,23 @@
 
 ;;; Theme
 ;;;; Font
-;; Cica
-;; url: https://github.com/miiton/Cica/releases/download/v3.0.0/Cica_v3.0.0.zip
+;; Cica: https://github.com/miiton/Cica
 (when window-system
   (set-fontset-font "fontset-standard" 'unicode (font-spec :family "Cica" :size 16))
+  (set-fontset-font nil 'unicode (font-spec :family "Cica" :size 16) nil 'append)
   (set-face-font 'default "fontset-standard")
   (my:add-to-list default-frame-alist (font . "fontset-standard"))
   (setq initial-frame-alist default-frame-alist))
-
-;;;; color-theme
-(use-package solarized-theme
+;;;; Color Theme
+(use-package doom-themes
   :ensure t
-  :init
-  (setq solarized-distinct-fringe-background t) ; fringe に色を付ける
-  ;; (setq solarized-high-contrast-mode-line t) ; mode-line を目立つ色にする (powerline と相性が悪いため off)
-  ;; フォントサイズを変えない
-  (setq solarized-scale-org-headlines nil
-        solarized-height-plus-1 1
-        solarized-height-plus-2 1
-        solarized-height-plus-3 1
-        solarized-height-plus-4 1
-        solarized-height-minus-1 1
-        solarized-use-variable-pitch nil)
-  ;; フォントを上書き
-  (custom-set-faces
-   '(custom-button ((t (:background "#073642" :foreground "#93a1a1" :box (:line-width 1 :style released-button)))))
-   '(custom-face-tag ((t (:inherit variable-pitch :foreground "#6c71c4" :weight normal :height 1.0))))
-   '(custom-group-tag ((t (:inherit variable-pitch :foreground "#268bd2" :height 1.0))))
-   '(custom-group-tag-1 ((t (:inherit variable-pitch :foreground "#dc322f" :height 1.0))))
-   '(custom-variable-tag ((t (:inherit variable-pitch :foreground "#2aa198" :height 1.0))))
-   '(info-title-1 ((t (:height 1.0))))
-   '(info-title-2 ((t (:height 1.0))))
-   '(info-title-3 ((t (:height 1.0))))
-   '(org-agenda-structure ((t (:background "#073642" :foreground "#93a1a1" :inverse-video nil :box (:line-width 2 :color "#002b36") :underline nil :slant normal :weight bold :height 1.0))))
-   '(org-document-title ((t (:foreground "#93a1a1" :weight bold :height 1.0))))
-   '(outline-1 ((t (:inherit org-level-1 :height 1.0))))
-   '(outline-2 ((t (:inherit org-level-2 :height 1.0))))
-   '(outline-3 ((t (:inherit org-level-3 :height 1.0))))
-   '(outline-4 ((t (:inherit org-level-4 :height 1.0))))
-   '(variable-pitch ((t (:family "Cica")))))
+  :custom
+  (doom-themes-enable-bold t)
   :config
-  (if (or (equal (getenv-internal "TERM" initial-environment)
-                 "xterm-24bits")
-          window-system)
-      (load-theme 'solarized-dark t)
-    (load-theme 'misterioso t)))
-;;;; misc.
+  (load-theme 'doom-dracula t)
+  (doom-themes-neotree-config)
+  (doom-themes-org-config))
+;;;; Misc.
 ;; disable menu-bar, tool-bar, scroll-bar
 (my:disable-mode menu-bar-mode)
 (when window-system
@@ -188,10 +170,12 @@
   (set-scroll-bar-mode 'nil))
 ;; cursor
 (add-to-list 'default-frame-alist '(cursor-type . bar))
+;; truncate lines
+(setq-default truncate-lines t)
 ;; transparent-mode
 (use-package tp-mode
   :if window-system
-  :quelpa (tp-mode :fetcher github :repo dlambda/tp-mode)
+  :quelpa (tp-mode :fetcher github :repo de9uch1/tp-mode)
   :config
   (tp-mode 95))
 ;; display line number
@@ -208,29 +192,23 @@
     (setq linum-format "%5d ")))
 ;; highlight line
 (my:enable-mode global-hl-line-mode)
-(my:add-function-to-hook (lambda () (progn (my:disable-mode linum-mode) (my:disable-mode hl-line-mode)))
-                         doc-view w3m twittering eshell term)
-;; truncate-lines
-;; (setq-default truncate-lines t)
-;; Display Time
+(my:add-function-to-hook
+ (lambda () (progn (my:disable-mode linum-mode) (my:disable-mode hl-line-mode)))
+ doc-view w3m twittering eshell term)
+;; show paren
 (my:enable-mode show-paren-mode)
 (setq show-paren-style 'mixed)
-(setq display-time-interval 1)
-(setq display-time-string-forms
-      '((format "%s, %s %s, %s  %s:%s:%s (%s)"
-                dayname day monthname (substring year -2) 24-hours minutes seconds time-zone)))
-(my:enable-mode display-time-mode)
-;;;; powerline.el
-(use-package powerline
+;;;; mode-line
+;; doom-modeline
+(use-package doom-modeline
   :ensure t
+  :custom
+  (doom-modeline-icon t)
   :config
-  (powerline-default-theme))
-
+  (my:enable-mode doom-modeline))
 ;;;; Window Size
 (when window-system
   (pcase (system-name)
-    ("t450s" (my:add-to-list default-frame-alist (height . 56) (width . 117) (top . 0) (left . 0)))
-    ("d-elitebook" (my:add-to-list default-frame-alist (height . 56) (width . 117) (top . 0) (left . 0)))
     ("goedel" (my:add-to-list default-frame-alist (height . 56) (width . 117) (top . 0) (left . 0))))
   (setq initial-frame-alist default-frame-alist))
 
@@ -276,25 +254,19 @@
       scroll-margin 0
       scroll-step 1)
 (setq comint-scroll-show-maximum-output t) ;; for shell-mode
-;; *.~ no backup
-(setq make-backup-files nil)
-;; .#* no back up
-(setq auto-save-default nil)
-(setq auto-save-list-file-prefix (concat my:d:tmp ".saves-"))
+;; *.~ / .#* no back up
+(setq make-backup-files nil
+      auto-save-default nil
+      auto-save-list-file-prefix (my:join my:d:tmp ".saves-"))
 ;; definition temporary files and shared files
-(use-package url
-  :init
-  (setq url-configuration-directory (concat my:d:tmp "url")))
-(use-package nsm
-  :if (featurep 'nsm)
-  :init
-  (setq nsm-settings-file (concat my:d:tmp "network-settings.data")))
-(setq bookmark-default-file (concat my:d:share "bookmarks"))
+(setq url-configuration-directory (my:join my:d:tmp "url")
+      nsm-settings-file (my:join my:d:tmp "network-settings.data")
+      bookmark-default-file (my:join my:d:share "bookmarks"))
 ;; save minibuffer history
 (my:enable-mode savehist-mode)
 (setq message-log-max 10000)
 (setq history-length t
-      savehist-file (concat my:d:tmp "history"))
+      savehist-file (my:join my:d:tmp "history"))
 ;; yes or no -> y or n
 (fset 'yes-or-no-p 'y-or-n-p)
 ;; not add newline at end of buffer
@@ -306,7 +278,7 @@
 ;; Emacs Server
 (use-package server
   :init
-  (defvar server-socket-dir (concat my:d:tmp "server"))
+  (defvar server-socket-dir (my:join my:d:tmp "server"))
   :config
   (unless (server-running-p)
     (server-start)))
@@ -314,20 +286,20 @@
 (use-package tramp
   :config
   (setq tramp-default-method "scp")
-  (setq tramp-persistency-file-name (concat my:d:tmp "tramp")))
+  (setq tramp-persistency-file-name (my:join my:d:tmp "tramp")))
 ;; dired
 (use-package dired-aux
   :config
   (use-package dired-async))
-(setq dired-dwim-target t) ;; diredを2つのウィンドウで開いている時に、デフォルトの移動orコピー先をもう一方のdiredで開いているディレクトリにする
-(setq dired-recursive-copies 'always) ;; ディレクトリを再帰的にコピーする
-(setq dired-isearch-filenames t) ;; diredバッファでC-sした時にファイル名だけにマッチするように
+(setq dired-dwim-target t) ;; default copy target in 2 windows
+(setq dired-recursive-copies 'always) ;; recursive directory copy
+(setq dired-isearch-filenames t) ;; only match filenames
 ;; generic-x
 (use-package generic-x)
-;; ファイルを開いた位置を保存する
+;; save last opened place
 (use-package saveplace
   :config
-  (setq save-place-file (concat my:d:tmp "save-places"))
+  (setq save-place-file (my:join my:d:tmp "save-places"))
   (my:enable-mode save-place-mode))
 ;; for same name buffer
 (use-package uniquify
@@ -354,49 +326,30 @@
   :ensure t
   :config
   (setq eldoc-idle-delay 30))
+;; move window
+(global-set-key (kbd "C-c <left>")  'windmove-left)
+(global-set-key (kbd "C-c <right>") 'windmove-right)
+(global-set-key (kbd "C-c <up>")    'windmove-up)
+(global-set-key (kbd "C-c <down>")  'windmove-down)
 
 ;;; Global Packages
-;;;; elscreen
-(use-package elscreen
-  :ensure t
-  :config
-  (use-package elscreen-w3m)
-  (use-package elscreen-server)
-  (use-package elscreen-color-theme)
-  (setq elscreen-tab-display-kill-screen nil)
-  (setq elscreen-tab-display-control nil)
-  (setq elscreen-display-screen-number nil)
-  ;; my:elscreen-recentf -- 新しい screen で最近開いたファイルを開く 
-  (use-package helm
-    :config
-    (defun my:elscreen-recentf ()
-      (interactive)
-      (let ((target-screen (elscreen-get-current-screen)))
-        (if (setq target-screen (elscreen-create-internal 'noerror))
-            (elscreen-goto target-screen))
-        (helm-recentf)
-        (when (= helm-exit-status 1) (elscreen-kill target-screen))))
-    (bind-keys :map elscreen-map ("C-r" . my:elscreen-recentf)))
-  (elscreen-start))
-
 ;;;; eshell
 (use-package eshell
-  :bind ("s-e" . eshell)
+  :bind ("C-c C-e" . eshell)
   :hook (eshell-mode . (lambda () (bind-keys :map eshell-mode-map
                                              ("C-d" . delete-char)
                                              ("C-a" . eshell-bol))))
   :config
-  (setq my:d:eshell (concat my:d:tmp "eshell/"))
+  (setq my:d:eshell (my:join my:d:tmp "eshell"))
   ;; lastdir & history
-  (setq eshell-last-dir-ring-file-name (concat my:d:eshell "lastdir." (system-name)))
-  (setq eshell-history-file-name (concat my:d:eshell "history." (system-name)))
+  (setq eshell-last-dir-ring-file-name (my:join my:d:eshell (concat "lastdir." (system-name))))
+  (setq eshell-history-file-name (my:join my:d:eshell (concat "history." (system-name))))
   ;; misc
   (setq eshell-cmpl-ignore-case t)                 ; 補完時に大文字小文字を区別しない
   (setq eshell-ask-to-save-history (quote always)) ; 確認なしでヒストリ保存
   (setq eshell-cmpl-cycle-completions t)           ; 補完時にサイクルする
   (setq eshell-cmpl-cycle-cutoff-length 5)         ; 補完候補がこの数値以下だとサイクルせずに候補表示
-  ;; (setq eshell-history-file-name (my:locate-home ".bash_history"))
-  (setq eshell-hist-ignoredups t)                  ; 履歴で重複を無視してくれるっぽいけど上手く動いてない
+  (setq eshell-hist-ignoredups t)
   ;; set eshell aliases
   (setq eshell-command-aliases-list
 	    '(("ll" "ls -lh $*")
@@ -404,97 +357,11 @@
           ("lla" "ls -lha $*")
           ("findn" "find . -name $*")
           ("duc" "du -had1 $*"))))
-
-;;;; company
-(use-package company
-  :ensure t
-  :diminish company-mode
-  :bind (:map company-active-map
-              ("C-n" . company-select-next)
-              ("C-p" . company-select-previous)
-              ("<tab>" . company-complete-selection)
-              :map company-search-map
-              ("C-n" . company-select-next)
-              ("C-p" . company-select-previous))
-  :init
-  (global-company-mode)
-  :config
-  (setq company-idle-delay 0.01)
-  (setq company-selection-wrap-around t)
-  (setq company-minimum-prefix-length 0)
-  (setq company-show-numbers t)
-  (use-package company-flx
-    :ensure t
-    :config
-    (my:enable-mode company-flx-mode)
-    )
-  (use-package company-quickhelp
-    :ensure t
-    :config
-    (my:enable-mode company-quickhelp-mode))
-  (use-package company-tabnine
-    :ensure t
-    :config
-    (push 'company-tabnine company-backends)
-    ;; (company-tabnine-install-binary)
-    )
-  )
-
 ;;;; helm
-(use-package helm
-  :ensure t
-  :diminish helm-mode
-  :bind (("M-x" . helm-M-x)
-         ("C-x C-f" . helm-find-files)
-         ("C-x C-r" . helm-recentf)
-         ("M-y" . helm-show-kill-ring)
-         ("C-c i" . helm-imenu)
-         ("C-x b" . helm-buffers-list)
-         :map helm-map
-         ("C-h" . delete-backward-char)
-         :map helm-find-files-map
-         ("C-h" . delete-backward-char)
-         ("TAB" . helm-execute-persistent-action)
-         :map helm-read-file-map
-         ("TAB" . helm-execute-persistent-action))
-  :config
-  (use-package helm-config)
-  (my:enable-mode helm-mode)
-  (use-package helm-source)
-  (my:add-to-list helm-completing-read-handlers-alist (find-alternate-file) (find-file) (write-file))
-  ;; Emulate `kill-line' in helm minibuffer
-  (setq helm-delete-minibuffer-contents-from-point t)
-  (defadvice helm-delete-minibuffer-contents (before helm-emulate-kill-line activate)
-    "Emulate `kill-line' in helm minibuffer"
-    (kill-new (buffer-substring (point) (field-end))))
-  (defadvice helm-ff-kill-or-find-buffer-fname (around execute-only-if-exist activate)
-    "Execute command only if CANDIDATE exists"
-    (when (file-exists-p candidate)
-      ad-do-it))
-  (defadvice helm-ff-transform-fname-for-completion (around my-transform activate)
-    "Transform the pattern to reflect my intention"
-    (let* ((pattern (ad-get-arg 0))
-           (input-pattern (file-name-nondirectory pattern))
-           (dirname (file-name-directory pattern)))
-      (setq input-pattern (replace-regexp-in-string "\\." "\\\\." input-pattern))
-      (setq ad-return-value
-            (concat dirname
-                    (if (string-match "^\\^" input-pattern)
-                        ;; '^' is a pattern for basename
-                        ;; and not required because the directory name is prepended
-                        (substring input-pattern 1)
-                      (concat ".*" input-pattern))))))
-  ;; tramp 中に helm-for-files を起動しても遅くならないようにする.
-  (setq helm-for-files-preferred-list
-        '(helm-source-buffers-list
-          helm-source-bookmarks
-          helm-source-recentf
-          helm-source-file-cache
-          ;; helm-source-files-in-current-dir
-          helm-source-locate)))
 ;; helm-swoop
 (use-package helm-swoop
   :ensure t
+  :disabled t
   :bind (("C-M-:" . helm-swoop-nomigemo)
          ("M-i" . helm-swoop)
          :map helm-swoop-map
@@ -508,27 +375,175 @@
            (lambda () (format "\\_<%s\\_> " (thing-at-point 'symbol)))))
       (helm-swoop :$source (delete '(migemo) (copy-sequence (helm-c-source-swoop)))
                   :$query $query :$multiline $multiline))))
-;; helm-ag
-(use-package helm-ag
-  :ensure t
-  :bind (("C-M-g" . helm-ag)))
-;; helm-descbinds
-(use-package helm-descbinds
-  :ensure t)
 
-;;;; undo
-;; undohist
-(use-package undohist
+;; prescient
+(use-package prescient
+  :ensure t
+  :custom
+  (prescient-aggressive-file-save t)
+  (prescient-save-file (my:join my:d:tmp "prescient-save.el"))
+  (prescient-history-length 1000)
+  :config
+  (my:enable-mode prescient-persist-mode))
+;; all-the-icons
+(use-package all-the-icons
+  :ensure t
+  :custom
+  (all-the-icons-scale-factor 1.0))
+;;;; counsel/ivy, swiper
+;; ivy
+(use-package ivy
+  :ensure t
+  :diminish
+  :custom
+  (ivy-use-virtual-buffers t)
+  (ivy-height 30)
+  (ivy-wrap t)
+  (ivy-format-functions-alist '((t . ivy-format-function-arrow)))
+  (ivy-count-format (concat (all-the-icons-faicon "sort-amount-asc") " (%d/%d) "))
+  :config
+  (my:enable-mode ivy-mode)
+  (setq ivy-re-builders-alist '((t . ivy--regex-ignore-order)))
+  (setq ivy-initial-inputs-alist '((t . "")))
+  (setq enable-recursive-minibuffers t)
+  ;; all-the-icons-ivy
+  (use-package all-the-icons-ivy
+    :ensure t)
+  (use-package all-the-icons-ivy-rich
+    :ensure t
+    :config
+    (my:enable-mode all-the-icons-ivy-rich-mode))
+  ;; ivy-rich
+  (use-package ivy-rich
+    :ensure t
+    :config
+    (my:enable-mode ivy-rich-mode))
+  ;; ivy-posframe
+  (use-package ivy-posframe
+    :ensure t
+    :custom
+    (ivy-posframe-display-functions-alist
+     '((t . ivy-posframe-display-at-point)))
+    :config
+    (my:enable-mode ivy-posframe-mode))
+  (use-package ivy-prescient
+    :ensure t
+    :custom
+    (ivy-prescient-retain-classic-highlighting t)
+    :config
+    (my:enable-mode ivy-prescient-mode)
+    ;; (setf (alist-get t ivy-re-builders-alist) #'ivy--regex-ignore-order)
+    ))
+;; counsel
+(use-package counsel
+  :ensure t
+  :diminish
+  :bind (("M-x" . counsel-M-x)
+         ("C-x C-f" . counsel-find-file)
+         ("C-x C-r" . counsel-recentf)
+         ("M-y" . counsel-yank-pop)
+         ("C-x b" . counsel-ibuffer)
+         ("C-M-g" . counsel-ag))
+  :custom
+  (counsel-yank-pop-separator "\n--------\n")
+  :config
+  (my:enable-mode counsel-mode))
+;; swiper
+(use-package swiper
+  :ensure t
+  :bind (("M-i" . swiper-thing-at-point)
+         :map swiper-map
+         ("C-s" . swiper-isearch)
+         ("C-r" . swiper-isearch-backward)))
+;;;; avy, ace
+(use-package avy
+  :ensure t)
+;; (use-package avy-migemo
+;;   :ensure t
+;;   :config
+;;   (my:enable-mode avy-migemo-mode)
+;;   (use-package avy-migemo-e.g.swiper))
+(use-package ace-window
+  :ensure t
+  :bind (("M-o" . ace-window))
+  :custom
+  (aw-keys '(?h ?j ?k ?l ?u ?i ?o ?p))
+  :custom-face
+  (aw-leading-char-face ((t (:height 2.0 :forground "#f1fa8c")))))
+
+;; smex
+(use-package smex
+  :ensure t
+  :custom
+  (smex-history-length 32)
+  (smex-save-file (my:join my:d:tmp "smex-items")))
+;;;; company
+(use-package company
+  :ensure t
+  :diminish company-mode
+  :bind (:map company-active-map
+              ("C-n" . company-select-next)
+              ("C-p" . company-select-previous)
+              ("<tab>" . company-complete-selection)
+              :map company-search-map
+              ("C-n" . company-select-next)
+              ("C-p" . company-select-previous))
+  :init
+  (global-company-mode)
+  :custom
+  (company-idle-delay 0.01)
+  (company-selection-wrap-around t)
+  (company-minimum-prefix-length 0)
+  (company-show-numbers t)
+  :config
+  (use-package company-flx
+    :ensure t
+    :config
+    (my:enable-mode company-flx-mode)
+    )
+  (use-package company-prescient
+    :ensure t
+    :config
+    (my:enable-mode company-prescient-mode)
+    )
+  (use-package company-box
+    :ensure t
+    :after (company all-the-icons)
+    :hook (company-mode . company-box-mode)
+    :custom
+    (company-box-icons-alist 'company-box-icons-all-the-icons))
+  (use-package company-quickhelp
+    :ensure t
+    :config
+    (my:enable-mode company-quickhelp-mode))
+  (use-package company-tabnine
+    :ensure t
+    :config
+    (push 'company-tabnine company-backends)
+    ;; (company-tabnine-install-binary)
+    )
+  )
+;;;; elscreen
+(use-package elscreen
   :ensure t
   :config
-  (setq undohist-directory (concat my:d:tmp "undohist"))
-  (undohist-initialize))
-;; undo-tree
-(use-package undo-tree
-  :ensure t
-  :diminish undo-tree-mode
-  :config
-  (my:enable-mode global-undo-tree-mode))
+  (use-package elscreen-w3m)
+  (use-package elscreen-server)
+  (use-package elscreen-color-theme)
+  (setq elscreen-tab-display-kill-screen nil)
+  (setq elscreen-tab-display-control nil)
+  (setq elscreen-display-screen-number nil)
+  (use-package counsel
+    :config
+    (defun my:elscreen-recentf ()
+      (interactive)
+      (let ((target-screen (elscreen-get-current-screen)))
+        (if (setq target-screen (elscreen-create-internal 'noerror))
+            (elscreen-goto target-screen))
+        (counsel-recentf)
+        ))
+    (bind-keys :map elscreen-map ("C-r" . my:elscreen-recentf)))
+  (elscreen-start))
 
 ;;;; migemo
 (use-package migemo
@@ -547,8 +562,8 @@
   (migemo-init))
 
 ;;;; ddskk
-(defvar my:d:skk (concat my:d:nextcloud "app/SKK/"))
-(setq skk-large-jisyo (concat my:d:skk "SKK-JISYO.L+emoji.utf8"))
+(defvar my:d:skk (my:join my:d:nextcloud "app/SKK"))
+(setq skk-large-jisyo (my:join my:d:skk "SKK-JISYO.L+emoji.utf8"))
 (use-package skk
   :ensure ddskk
   :if (file-exists-p skk-large-jisyo)
@@ -556,26 +571,22 @@
          ("C-\\" . skk-mode))
   :init
   (setq skk-user-directory my:d:skk
-        skk-jisyo (concat my:d:skk "jisyo.utf8")
-        skk-backup-jisyo (concat my:d:tmp "SKK/jisyo.bak")
-        skk-study-backup-file (concat my:d:tmp "SKK/study.bak"))
+        skk-jisyo (my:join my:d:skk "jisyo.utf8")
+        skk-backup-jisyo (my:join my:d:tmp "SKK/jisyo.bak")
+        skk-study-backup-file (my:join my:d:tmp "SKK/study.bak"))
   (setq skk-jisyo-code 'utf-8)
   (setq default-input-method "japanese-skk")
   :config
   (setq skk-extra-jisyo-file-list
         (list
-         (concat my:d:skk "SKK-JISYO.JIS3_4")))
+         (my:join my:d:skk "SKK-JISYO.JIS3_4")))
   ;; (skk-toggle-katakana 'jisx0201-kana)
-  ;; SKK を Emacs の input method として使用する
-  ;;   `toggle-input-method' (C-\) で DDSKK が起動します
   (setq default-input-method
         "japanese-skk" ; (skk-mode 1)
         ;;    "japanese-skk-auto-fill"		; (skk-auto-fill-mode 1)
         )
-  ;; SKK を起動していなくても、いつでも skk-isearch を使う
   (setq skk-isearch-mode-enable 'always)
-  ;; Emacs 起動時に SKK を前もってロードする
-  (setq skk-preload t)
+  (setq skk-preload nil)
   (use-package skk-study)
   ;; 数値変換機能を使う
   (setq skk-use-numeric-conversion t)
@@ -604,7 +615,7 @@
         (cons '(my-jp "．" . "，")
               (cons '(my-en ". " . ", ")
 	                skk-kuten-touten-alist)))
-  (setq-default skk-kutouten-type 'my-en))
+  (setq-default skk-kutouten-type 'my-jp))
 
 ;;;; emacs-w3m
 (use-package w3m
@@ -613,22 +624,22 @@
   :bind (:map w3m-mode-map
               ("S" . w3m-db-history))
   :config
-  (defvar my:d:w3m:config (concat my:d:nextcloud "app/emacs-w3m/"))
-  (defvar my:d:w3m:tmp (concat my:d:tmp "w3m/"))
+  (defvar my:d:w3m:config (my:join my:d:nextcloud "app/emacs-w3m"))
+  (defvar my:d:w3m:tmp (my:join my:d:tmp "w3m"))
   ;; user's files
-  (setq w3m-init-file (or load-file-name (buffer-file-name)))
-  (setq w3m-default-save-directory (my:locate-home "/Downloads"))
-  (setq w3m-arrived-file (concat my:d:w3m:tmp "history"))
-  (setq w3m-cookie-file (concat my:d:w3m:tmp "cookie"))
-  (setq w3m-form-textarea-directory (concat my:d:w3m:tmp "formhist"))
-  (setq w3m-bookmark-file (concat my:d:w3m:config "bookmark"))
-  (setq w3m-session-file (concat my:d:w3m:tmp "sessions"))
-  (setq w3m-icon-directory (concat my:d:w3m:tmp "icon"))
-  (setq w3m-favicon-cache-file (concat my:d:w3m:tmp "favicon"))
+  (setq w3m-init-file (or load-file-name (buffer-file-name))
+        w3m-default-save-directory (my:locate-home "Downloads")
+        w3m-bookmark-file (my:join my:d:w3m:config "bookmark")
+        w3m-arrived-file (my:join my:d:w3m:tmp "history")
+        w3m-cookie-file (my:join my:d:w3m:tmp "cookie")
+        w3m-form-textarea-directory (my:join my:d:w3m:tmp "formhist")
+        w3m-session-file (my:join my:d:w3m:tmp "sessions")
+        w3m-icon-directory (my:join my:d:w3m:tmp "icon")
+        w3m-favicon-cache-file (my:join my:d:w3m:tmp "favicon"))
   ;; text encoding
-  (setq w3m-default-coding-system 'utf-8)
-  (setq w3m-bookmark-file-coding-system 'utf-8)
-  (setq w3m-coding-system-priority-list '(utf-8 shift_jis euc-jp iso-2022-jp cp932))
+  (setq w3m-default-coding-system 'utf-8
+        w3m-bookmark-file-coding-system 'utf-8
+        w3m-coding-system-priority-list '(utf-8 shift_jis euc-jp iso-2022-jp cp932))
   ;; inline images
   ;;(setq w3m-default-display-inline-images t)
   (setq w3m-default-display-inline-images nil)
@@ -643,6 +654,20 @@
   ;; weather
   (setq w3m-weather-default-area "愛媛県・中予"))
 
+;;;; undo
+;; undohist
+(use-package undohist
+  :ensure t
+  :config
+  (setq undohist-directory (my:join my:d:tmp "undohist"))
+  (undohist-initialize))
+;; undo-tree
+(use-package undo-tree
+  :ensure t
+  :diminish undo-tree-mode
+  :config
+  (my:enable-mode global-undo-tree-mode))
+
 ;;;; yasnippet
 (use-package yasnippet
   :ensure t
@@ -650,7 +675,7 @@
   :config
   (use-package yasnippet-snippets
     :ensure t)
-  (setq yas-snippet-dirs (list (concat my:d:share "snippets") yasnippet-snippets-dir))
+  (setq yas-snippet-dirs (list (my:join my:d:share "snippets") yasnippet-snippets-dir))
   (my:enable-mode yas-global-mode)
   ;; Select snippet using helm
   (defun shk-yas/helm-prompt (prompt choices &optional display-fn)
@@ -724,8 +749,6 @@
     (add-hook 'lsp-mode-hook 'lsp-ui-mode))
   )
 
-;;;; C, C++
-
 ;;;; bison, flex
 (use-package bison-mode
   :ensure t
@@ -756,22 +779,20 @@
   (setq tex-pdfview-command (executable-find "okular"))
   (setq electric-indent-mode nil)
   (setq reftex-use-external-file-finders t)
-  (setq reftex-default-bibliography (list (concat my:d:nextcloud "lab/tex/nlp.bib"))))
+  (setq reftex-default-bibliography (list (my:join my:d:nextcloud "lab/tex/nlp.bib"))))
 
 ;;;; Lisp -- Common Lisp, Scheme
 ;;;;; Common Lisp
 ;; SLIME
+(setq quicklisp-directory (my:locate-home "quicklisp"))
 (use-package slime
-  :if (file-exists-p (my:locate-home "quicklisp"))
-  :load-path "~/quicklisp"
+  :if (file-exists-p quicklisp-directory)
+  :load-path quicklisp-directory
   :config
   (setq inferior-lisp-program "clisp")
-  (load (expand-file-name "~/quicklisp/slime-helper.el"))
-)
-
+  (load (my:join quicklisp-directory "slime-helper.el")))
 ;;;;; Scheme
 (setq scheme-program-name "gosh -i")
-;; 別のウィンドウに gosh を動作させる
 (defun scheme-other-window ()
   "Run Gauche on other window"
   (interactive)
@@ -892,7 +913,6 @@
     (pop-to-buffer (make-ruby-scratch-buffer))))
 
 ;;;; python
-;; emerge pyflakes pip
 (use-package python-mode
   ;; :ensure-system-package (pip
   ;;                         (python-language-server . "pip install --user python-language-server[all]"))
@@ -901,9 +921,7 @@
   (setq py-outline-minor-mode-p nil)
   (setq py-current-defun-show nil)
   (setq py-jump-on-exception nil)
-  (setq py-current-defun-delay 1000)
-  )
-
+  (setq py-current-defun-delay 1000))
 ;; quickrun
 (use-package quickrun
   :ensure t
@@ -944,7 +962,7 @@
     :config
     (my:add-to-list mime-charset-coding-system-alist (iso-2022-jp . cp50220)))
   (setq wl-mime-charset 'utf-8)
-  (setq mime-situation-examples-file (concat my:d:tmp "mime-example"))
+  (setq mime-situation-examples-file (my:join my:d:tmp "mime-example"))
   (use-package mime-w3m
     :if (executable-find "w3m"))
   (use-package w3m-ems
@@ -975,7 +993,7 @@
          ("C-c t" . org-todo))
   :hook (org-mode . turn-on-font-lock)
   :init
-  (setq org-directory (concat my:d:nextcloud "org/"))
+  (setq org-directory (my:join my:d:nextcloud "org/"))
   :config
   (use-package org-install)
   (use-package org-capture)
@@ -984,7 +1002,7 @@
   (setq org-startup-truncated nil)
   (setq org-return-follows-link t)
   ;;(org-remember-insinuate)
-  (setq org-default-notes-file (concat org-directory "agenda.org"))
+  (setq org-default-notes-file (my:join org-directory "agenda.org"))
   (setq org-capture-templates
         '(("t" "Todo" entry (file "todo.org")
            "* TODO %?%i\n  %T"
@@ -995,7 +1013,7 @@
           ("b" "bookmarks" entry (file+headline "memo.org" "Bookmarks")
            "* %:description\n    %?\n    %:link\n    %T"
            :kill-buffer t)
-          ("s" "Snippets" entry (file (concat org-directory "snippets.org"))
+          ("s" "Snippets" entry (file (my:join org-directory "snippets.org"))
            "* %T\n#+begin_src \n%i%?\n#+end_src"
            :kill-buffer t)
           ("d" "diary" entry (file+datetree "diary.org")
@@ -1007,20 +1025,19 @@
           ("a" "Daily" entry (file+datetree "journal.org")
            "* TODO %?%i :daily:\n  %t"
            :kill-buffer t)
-          ("l" "lab log" entry (file+datetree "../lab/note/lablog.org")
+          ("r" "research note" entry (file "research.org")
            "* %?%i\n  %a\n  <%<%Y-%m-%d (%a) %H:%M:%S>>"
            :kill-buffer t)))
   (setq org-tag-alist '(("daily" . ?d)))
   (setq org-agenda-files nil)
-  (dolist (file '("todo.org" "memo.org" "diary.org" "journal.org" "schedule.org"))
-    (add-to-list 'org-agenda-files (concat org-directory file)))
-  (add-to-list 'org-agenda-files (concat my:d:nextcloud "lab/note/lablog.org"))
+  (dolist (file '("todo.org" "memo.org" "diary.org" "journal.org" "schedule.org" "research.org"))
+    (add-to-list 'org-agenda-files (my:join org-directory file)))
   (setq org-export-with-toc nil)
   ;; org-gcal
   (use-package request
     :ensure t
     :init
-    (setq request-storage-directory (concat my:d:tmp "request"))
+    (setq request-storage-directory (my:join my:d:tmp "request"))
     (unless (file-directory-p request-storage-directory)
       (make-directory request-storage-directory)))
   (use-package org-gcal
@@ -1028,7 +1045,7 @@
     :if (file-directory-p org-directory)
     :commands (org-gcal-fetch org-gcal-sync)
     :init
-    (setq org-gcal-dir (concat my:d:tmp "org-gcal"))
+    (setq org-gcal-dir (my:join my:d:tmp "org-gcal"))
     (unless org-gcal-dir
       (make-directory org-gcal-dir))
     (setq org-gcal-token-file (expand-file-name ".org-gcal-token" org-gcal-dir))
@@ -1038,21 +1055,10 @@
     (setq org-gcal-up-days    180) ;; 未来 6 month
     (setq org-gcal-auto-archive nil)
     :config
-    (load (concat my:d:nextcloud "app/org-gcal/token"))
-    (setq org-gcal-file-alist `(("de9uch1@gmail.com" . ,(concat org-directory "schedule.org"))))))
+    (load (my:join my:d:nextcloud "app/org-gcal/token"))
+    (setq org-gcal-file-alist `(("de9uch1@gmail.com" . ,(my:join org-directory "schedule.org"))))))
 
 ;;; Misc Packages
-;;;; vc-mode
-;; mercurial
-(use-package mercurial
-  :config
-  (setq vc-follow-symlinks t)
-  (setq vc-handled-backends nil)        ; no use vc-mode
-  ;; remove hook
-  (remove-hook 'find-file-hook 'vc-find-file-hook)
-  (remove-hook 'kill-buffer-hook 'vc-kill-buffer-hook))
-(use-package hgignore-mode
-  :ensure t)
 ;;;; twittering-mode
 (use-package twittering-mode
   :ensure t
@@ -1063,7 +1069,7 @@
   (setq twittering-use-master-password t)
   (setq twittering-private-info-file (my:locate-home ".gnupg/twittering-mode.gpg"))
   (setq twittering-icon-storage-limit t)
-  (setq twittering-icon-storage-file (concat my:d:tmp "twmode-icon"))
+  (setq twittering-icon-storage-file (my:join my:d:tmp "twmode-icon"))
   (setq twittering-connection-type-order '(wget curl urllib-http native urllib-https))
   ;; ふぁぼるとき確認しない
   (defun my:twittering-favorite (&optional remove)
@@ -1093,6 +1099,7 @@
 (use-package helm-gtags
   :ensure t
   :diminish
+  :disabled t
   :hook (prog-mode . helm-gtags-mode)
   :bind (:map helm-gtags-mode-map
               ("M-t" . helm-gtags-find-tag)
@@ -1102,6 +1109,12 @@
   :config
   (my:enable-mode helm-gtags-mode))
 ;;;; Git
+;;;; vc-mode
+(setq vc-follow-symlinks t)
+(setq vc-handled-backends nil)          ; no use vc-mode
+;; remove hook
+(remove-hook 'find-file-hook 'vc-find-file-hook)
+(remove-hook 'kill-buffer-hook 'vc-kill-buffer-hook)
 (use-package magit
   :ensure t
   :bind (("C-x g" . magit-status)))
@@ -1126,11 +1139,11 @@
   :ensure t
   :bind (("C-x j" . open-junk-file))
   :config
-  (setq open-junk-file-format (my:locate-home "/tmp/junk/%Y-%m-%d-%H%M%S.")))
+  (setq open-junk-file-format (my:locate-home "tmp/junk/%Y-%m-%d-%H%M%S.")))
 ;;;; recentf
 (use-package recentf
   :config
-  (setq recentf-save-file (concat my:d:tmp "recentf"))
+  (setq recentf-save-file (my:join my:d:tmp "recentf"))
   (setq recentf-max-menu-items 100)
   (setq recentf-max-saved-items 5000)
   (setq recentf-exclude '(".recentf"))
@@ -1183,7 +1196,7 @@
          ("<C-f10>" . mc/mark-previous-like-this)
          ("C-c C-<" . mc/mark-all-like-this))
   :config
-  (setq mc/list-file (concat my:d:tmp "mc-lists.el")))
+  (setq mc/list-file (my:join my:d:tmp "mc-lists.el")))
 ;;;; smartparens
 (use-package smartparens
   :ensure t
