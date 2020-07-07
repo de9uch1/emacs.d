@@ -729,14 +729,26 @@
   :commands lsp
   :hook ((python-mode sh-mode c++-mode) . #'lsp)
   :custom
+  (lsp-print-io nil)
+  (lsp-trace nil)
+  (lsp-print-performance nil)
+
+  (lsp-auto-guess-root t)
+  (lsp-document-sync-method 'incremental)
+  (lsp-response-timeout 5)
+
   (lsp-prefer-flymake nil)
   (lsp-enable-snippet t)
-  (lsp-enable-indentation nil)
-  (lsp-enable-completion-at-point nil)
+  ;; (lsp-enable-indentation nil)
+  ;; (lsp-enable-completion-at-point nil)
   :config
   (setq lsp-restart 'auto-restart)
   (use-package company-lsp
     :ensure t
+    :custom
+    (company-lsp-cache-candidates t)
+    (company-lsp-async t)
+    ;; (company-lsp-enable-recompletion nil)
     :config
     (push 'company-lsp company-backends)
     )
