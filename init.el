@@ -205,7 +205,7 @@
   :custom
   (doom-modeline-icon t)
   :config
-  (my:enable-mode doom-modeline))
+  (my:enable-mode doom-modeline-mode))
 ;;;; Window Size
 (when window-system
   (pcase (system-name)
