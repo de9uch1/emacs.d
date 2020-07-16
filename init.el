@@ -209,7 +209,7 @@
 ;;;; Window Size
 (when window-system
   (pcase (system-name)
-    ("goedel" (my:add-to-list default-frame-alist (height . 56) (width . 117) (top . 0) (left . 0))))
+    ("goedel" (my:add-to-list default-frame-alist (height . 56) (width . 117) )))
   (setq initial-frame-alist default-frame-alist))
 
 ;;; Basic Configurations
@@ -339,7 +339,7 @@
 ;;; Global Packages
 ;;;; eshell
 (use-package eshell
-  :bind ("C-c C-e" . eshell)
+  :bind ("M-s" . eshell)
   :hook (eshell-mode . (lambda () (bind-keys :map eshell-mode-map
                                              ("C-d" . delete-char)
                                              ("C-a" . eshell-bol))))
@@ -1024,6 +1024,8 @@
   :hook (org-mode . turn-on-font-lock)
   :init
   (setq org-directory (my:join my:d:nextcloud "org/"))
+  :custom
+  (org-latex-pdf-process '("latexmk %f"))
   :config
   (use-package org-install)
   (use-package org-capture)
