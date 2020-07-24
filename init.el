@@ -35,13 +35,14 @@
 
 ;;; Startup
 ;;;; Tuning and Speed Up:
-(setq gc-cons-percentage 0.75)
-(setq gc-cons-threshold (* 512 1024 1024))
-(add-hook 'after-init-hook
-          `(lambda ()
-             (setq gc-cons-threshold 800000
-                   gc-cons-percentage 0.1)
-             (garbage-collect)) t)
+(setq gc-cons-percentage 1.0
+      gc-cons-threshold (* 1024 1024 1024))
+(add-hook
+ 'after-init-hook
+ `(lambda ()
+    (setq gc-cons-threshold (* 8 1024 1024)
+          gc-cons-percentage 0.1)
+    (garbage-collect)) t)
 
 ;;;; cl-lib -- load Common Lisp library:
 (require 'cl-lib)
@@ -54,32 +55,37 @@
   (setq my:gentoo-p t))
 
 ;;; My Functions and Macros -- prefix "my:"
-;;;; not eq
+;; not eq
 (defun my:ne (x y &optional comp)
   (not
    (if comp
        (funcall comp x y)
      (eq x y))))
-;;;; like Python's os.path.join()
+;; like Python's os.path.join()
 (defun my:join (a b)
   (concat a
           (when (my:ne (substring a -1) "/" 'string-equal) "/")
           b))
-;;;; my:locate-user-emacs-file
+;; return path if path exists else nil
+(defun my:path-exists? (path)
+  (if (file-exists-p path)
+      path
+    nil))
+;; my:locate-user-emacs-file
 (defun my:locate-user-emacs-file (x)
   "Expand filename locate-user-emacs-file"
   (expand-file-name (locate-user-emacs-file x)))
-;;;; my:locate-home
+;; my:locate-home
 (defconst HOME (getenv "HOME"))
 (defun my:locate-home (x)
   "Concat and Expand path from HOME"
   (expand-file-name (my:join HOME x)))
-;;;; mode enable/disable
+;; mode enable/disable
 (defmacro my:enable-mode (mode)
   `(,mode 1))
 (defmacro my:disable-mode (mode)
   `(,mode 0))
-;;;; my:add-to-list, add function to hook
+;; my:add-to-list, add function to hook
 (cl-defmacro my:add-to-list (list &optional &body elements)
   `(cl-loop for e in ',elements
             do (add-to-list ',list e)))
@@ -87,6 +93,12 @@
   (cl-loop for target-hook in hooks
            do (add-hook (intern (concat (symbol-name target-hook) "-mode-hook"))
                         function)))
+;; suppressed message
+(defmacro with-suppressed-message (&rest body)
+  "Suppress new messages temporarily in the echo area and the `*Messages*' buffer while BODY is evaluated."
+  (declare (indent 0))
+  (let ((message-log-max nil))
+    `(with-temp-message (or (current-message) "") ,@body)))
 
 ;;; My Configurations
 ;; Name
@@ -95,7 +107,8 @@
 (setq user-mail-address "deguchi@ai.cs.ehime.ac.jp")
 ;;;; Directory --
 ;; $HOME/.emacs.d
-(when load-file-name                    ; for ``emacs -q -l .emacs''
+;; for ``emacs -q -l .emacs''
+(when load-file-name
   (setq user-emacs-directory (file-name-directory load-file-name)))
 (defconst my:d:tmp (my:locate-user-emacs-file "tmp"))
 (defconst my:d:share (my:locate-user-emacs-file "share"))
@@ -106,17 +119,15 @@
          'file-exists-p
          (mapcar (lambda (x) (my:locate-home x)) d))
         user-emacs-directory)))
+
 ;;; Package Management
-;; package.el
+;;;; package.el
 (require 'package nil t)
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
-(add-to-list 'package-archives '("melpa-stable" . "https://stable.melpa.org/packages/") t)
 (package-initialize)
 (when (not (package-installed-p 'use-package))
   (package-refresh-contents)
   (package-install 'use-package))
-;; (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3")
-
 ;;;; use-package.el
 (unless (require 'use-package nil t)
   (defmacro use-package (&rest args)))
@@ -145,23 +156,55 @@
 (load custom-file t)
 
 ;;; Theme
-;;;; Font
-;; Cica: https://github.com/miiton/Cica
-(when window-system
-  (set-fontset-font "fontset-standard" 'unicode (font-spec :family "Cica" :size 16))
-  (set-fontset-font nil 'unicode (font-spec :family "Cica" :size 16) nil 'append)
-  (set-face-font 'default "fontset-standard")
-  (my:add-to-list default-frame-alist (font . "fontset-standard"))
-  (setq initial-frame-alist default-frame-alist))
 ;;;; Color Theme
 (use-package doom-themes
   :ensure t
   :custom
   (doom-themes-enable-bold t)
+  (doom-themes-neotree-project-size 1.0)
+  (doom-themes-neotree-folder-size 1.0)
   :config
   (load-theme 'doom-dracula t)
   (doom-themes-neotree-config)
   (doom-themes-org-config))
+;;;; Modeline
+;; doom-modeline
+(use-package doom-modeline
+  :ensure t
+  :custom
+  (doom-modeline-icon t)
+  :config
+  (my:enable-mode doom-modeline-mode))
+;;;; all-the-icons
+(use-package all-the-icons
+  :ensure t
+  :custom
+  (all-the-icons-scale-factor 1.0)
+  :config
+  (use-package all-the-icons-dired
+    :ensure t
+    :hook (dired-mode . all-the-icons-dired-mode))
+  (use-package all-the-icons-ibuffer
+    :ensure t
+    :config
+    (my:enable-mode all-the-icons-ibuffer-mode)))
+;;;; Font
+;; Cica: https://github.com/miiton/Cica
+(when window-system
+  (set-fontset-font "fontset-standard" 'unicode (font-spec :family "Cica" :size 16))
+  (use-package all-the-icons
+    :config
+    (unless (x-list-fonts "all-the-icons")
+      (all-the-icons-install-fonts t))
+    (set-fontset-font "fontset-standard" 'unicode (font-spec :family (all-the-icons-alltheicon-family)) nil 'append)
+    (set-fontset-font "fontset-standard" 'unicode (font-spec :family (all-the-icons-material-family)) nil 'append)
+    (set-fontset-font "fontset-standard" 'unicode (font-spec :family (all-the-icons-fileicon-family)) nil 'append)
+    (set-fontset-font "fontset-standard" 'unicode (font-spec :family (all-the-icons-faicon-family)) nil 'append)
+    (set-fontset-font "fontset-standard" 'unicode (font-spec :family (all-the-icons-octicon-family)) nil 'append)
+    (set-fontset-font "fontset-standard" 'unicode (font-spec :family (all-the-icons-wicon-family)) nil 'append))
+  (set-face-font 'default "fontset-standard")
+  (my:add-to-list default-frame-alist (font . "fontset-standard"))
+  (setq initial-frame-alist default-frame-alist))
 ;;;; Misc.
 ;; disable menu-bar, tool-bar, scroll-bar
 (my:disable-mode menu-bar-mode)
@@ -179,10 +222,6 @@
   :config
   (tp-mode 95))
 ;; display line number
-(use-package hlinum
-  :ensure t
-  :config
-  (hlinum-activate))
 (if (version<= "26.0.50" emacs-version)
     (progn
       (global-display-line-numbers-mode)
@@ -193,23 +232,19 @@
 ;; highlight line
 (my:enable-mode global-hl-line-mode)
 (my:add-function-to-hook
- (lambda () (progn (my:disable-mode linum-mode) (my:disable-mode hl-line-mode)))
- doc-view w3m twittering eshell term)
+ (lambda () (progn (my:disable-mode linum-mode) (my:disable-mode hl-line-mode))) doc-view)
 ;; show paren
-(my:enable-mode show-paren-mode)
-(setq show-paren-style 'mixed)
-;;;; mode-line
-;; doom-modeline
-(use-package doom-modeline
-  :ensure t
+(use-package paren
+  :ensure nil
+  :hook (after-init . show-paren-mode)
   :custom
-  (doom-modeline-icon t)
-  :config
-  (my:enable-mode doom-modeline-mode))
+  (show-paren-style 'mixed)
+  (show-paren-when-point-inside-paren t)
+  (show-paren-when-point-in-periphery t))
 ;;;; Window Size
 (when window-system
   (pcase (system-name)
-    ("goedel" (my:add-to-list default-frame-alist (height . 56) (width . 117) )))
+    ("goedel" (my:add-to-list default-frame-alist (height . 56) (width . 117))))
   (setq initial-frame-alist default-frame-alist))
 
 ;;; Basic Configurations
@@ -223,7 +258,7 @@
 ;; (set-buffer-file-coding-system 'utf-8-unix)
 ;; (set-language-environment 'Japanese)
 ;; (setq-default buffer-file-coding-system 'utf-8-unix)
-;;;; misc.
+;;;; Misc.
 ;; load-path
 (let ((default-directory my:d:share))
   (add-to-list 'load-path default-directory)
@@ -246,7 +281,7 @@
 (use-package bind-key
   :bind (("C-m" . newline-and-indent)
          ("C-h" . delete-backward-char))) ; C-h -> Backspace
-;; .el, .elc
+;; .el > .elc
 (when (boundp 'load-prefer-newer)
   (setq load-prefer-newer t))
 ;; scroll for one line
@@ -285,7 +320,7 @@
 ;; tramp
 (use-package tramp
   :config
-  (setq tramp-default-method "scp")
+  (setq tramp-default-method "ssh")
   (setq tramp-persistency-file-name (my:join my:d:tmp "tramp")))
 ;; dired
 (use-package dired-aux
@@ -308,33 +343,31 @@
   (setq uniquify-buffer-name-style 'post-forward-angle-brackets
         uniquify-min-dir-content 1))
 ;; XClip
-(when window-system
+(when (eq window-system 'x)
   (setq x-select-enable-clipboard t))
 ;; popwin
 (use-package popwin
   :ensure t
+  :hook (after-init . popwin-mode)
   :config
-  (my:enable-mode popwin-mode)
   (my:add-to-list popwin:special-display-config
                   ("*Compile-Log*")
                   ("*Buffer List*")
                   ("*Warnings*")
                   ("*system-packages*")
                   ("*Async Shell Command*")))
+;; move window
 (use-package windmove
   :bind (("C-c <left>" . windmove-left)
-         ("C-c <right>" . windmove-right)))
+         ("C-c <right>" . windmove-right)
+         ("C-c <up>" . windmove-up)
+         ("C-c <down>" . windmove-down)))
 ;; eldoc
 (my:disable-mode global-eldoc-mode)
 (use-package eldoc-overlay
   :ensure t
   :config
   (setq eldoc-idle-delay 30))
-;; move window
-(global-set-key (kbd "C-c <left>")  'windmove-left)
-(global-set-key (kbd "C-c <right>") 'windmove-right)
-(global-set-key (kbd "C-c <up>")    'windmove-up)
-(global-set-key (kbd "C-c <down>")  'windmove-down)
 
 ;;; Global Packages
 ;;;; eshell
@@ -361,44 +394,20 @@
           ("lla" "ls -lha $*")
           ("findn" "find . -name $*")
           ("duc" "du -had1 $*"))))
-;;;; helm
-;; helm-swoop
-(use-package helm-swoop
-  :ensure t
-  :disabled t
-  :bind (("C-M-:" . helm-swoop-nomigemo)
-         ("M-i" . helm-swoop)
-         :map helm-swoop-map
-         ("C-r" . helm-previous-line)
-         ("C-s" . helm-next-line))
-  :config
-  (cl-defun helm-swoop-nomigemo (&key $query ($multiline current-prefix-arg))
-    "シンボル検索用Migemo無効版helm-swoop"
-    (interactive)
-    (let ((helm-swoop-pre-input-function
-           (lambda () (format "\\_<%s\\_> " (thing-at-point 'symbol)))))
-      (helm-swoop :$source (delete '(migemo) (copy-sequence (helm-c-source-swoop)))
-                  :$query $query :$multiline $multiline))))
-
-;; prescient
+;;;; prescient.el -- simple but effective sorting and filtering for Emacs.
 (use-package prescient
   :ensure t
   :custom
   (prescient-aggressive-file-save t)
   (prescient-save-file (my:join my:d:tmp "prescient-save.el"))
-  (prescient-history-length 1000)
-  :config
-  (my:enable-mode prescient-persist-mode))
-;; all-the-icons
-(use-package all-the-icons
-  :ensure t
-  :custom
-  (all-the-icons-scale-factor 1.0))
+  (prescient-history-length 5000)
+  :hook (after-init . prescient-persist-mode))
 ;;;; counsel/ivy, swiper
 ;; ivy
 (use-package ivy
   :ensure t
   :diminish
+  :hook (after-init . ivy-mode)
   :custom
   (ivy-use-virtual-buffers t)
   (ivy-height 30)
@@ -406,7 +415,6 @@
   (ivy-format-functions-alist '((t . ivy-format-function-arrow)))
   (ivy-count-format (concat (all-the-icons-faicon "sort-amount-asc") " (%d/%d) "))
   :config
-  (my:enable-mode ivy-mode)
   (setq ivy-re-builders-alist '((t . ivy--regex-ignore-order)))
   (setq ivy-initial-inputs-alist '((t . "")))
   (setq enable-recursive-minibuffers t)
@@ -415,16 +423,15 @@
     :ensure t)
   (use-package all-the-icons-ivy-rich
     :ensure t
-    :config
-    (my:enable-mode all-the-icons-ivy-rich-mode))
+    :hook (after-init . all-the-icons-ivy-rich-mode))
   ;; ivy-rich
   (use-package ivy-rich
     :ensure t
-    :config
-    (my:enable-mode ivy-rich-mode))
+    :hook (after-init . ivy-rich-mode))
   ;; ivy-posframe
   (use-package ivy-posframe
     :ensure t
+    :disabled t
     :custom
     (ivy-posframe-display-functions-alist
      '((t . ivy-posframe-display-at-point)))
@@ -432,10 +439,9 @@
     (my:enable-mode ivy-posframe-mode))
   (use-package ivy-prescient
     :ensure t
+    :hook (after-init . ivy-prescient-mode)
     :custom
     (ivy-prescient-retain-classic-highlighting t)
-    :config
-    (my:enable-mode ivy-prescient-mode)
     ;; (setf (alist-get t ivy-re-builders-alist) #'ivy--regex-ignore-order)
     ))
 ;; counsel
@@ -446,12 +452,11 @@
          ("C-x C-f" . counsel-find-file)
          ("C-x C-r" . counsel-recentf)
          ("M-y" . counsel-yank-pop)
-         ("C-x b" . counsel-ibuffer)
+         ("C-x b" . counsel-switch-buffer)
          ("C-M-g" . counsel-ag))
+  :hook (after-init . counsel-mode)
   :custom
-  (counsel-yank-pop-separator "\n--------\n")
-  :config
-  (my:enable-mode counsel-mode))
+  (counsel-yank-pop-separator "\n--------\n"))
 ;; swiper
 (use-package swiper
   :ensure t
@@ -460,13 +465,18 @@
          ("C-s" . swiper-isearch)
          ("C-r" . swiper-isearch-backward)))
 ;;;; avy, ace
+;; avy
 (use-package avy
-  :ensure t)
-;; (use-package avy-migemo
-;;   :ensure t
-;;   :config
-;;   (my:enable-mode avy-migemo-mode)
-;;   (use-package avy-migemo-e.g.swiper))
+  :ensure t
+  :bind (("C-:" . avy-goto-char-timer)
+         ("C-;" . avy-goto-line)))
+(use-package avy-migemo
+  :ensure t
+  :disabled t
+  :config
+  (my:enable-mode avy-migemo-mode)
+  (use-package avy-migemo-e.g.swiper))
+;; ace-window
 (use-package ace-window
   :ensure t
   :bind (("M-o" . ace-window))
@@ -474,8 +484,7 @@
   (aw-keys '(?h ?j ?k ?l ?u ?i ?o ?p))
   :custom-face
   (aw-leading-char-face ((t (:height 2.0 :forground "#f1fa8c")))))
-
-;; smex
+;;;; smex
 (use-package smex
   :ensure t
   :custom
@@ -492,51 +501,49 @@
               :map company-search-map
               ("C-n" . company-select-next)
               ("C-p" . company-select-previous))
-  :init
-  (global-company-mode)
+  :hook (after-init . global-company-mode)
   :custom
+  (company-transformers '(company-sort-by-backend-importance))
   (company-idle-delay 0.01)
   (company-selection-wrap-around t)
   (company-minimum-prefix-length 0)
+  (completion-ignore-case t)
   (company-show-numbers t)
   :config
   (use-package company-flx
     :ensure t
-    :config
-    (my:enable-mode company-flx-mode)
-    )
+    :hook (after-init . company-flx-mode))
   (use-package company-prescient
     :ensure t
-    :config
-    (my:enable-mode company-prescient-mode)
-    )
+    :hook (after-init . company-prescient-mode))
   (use-package company-box
     :ensure t
-    :after (company all-the-icons)
     :hook (company-mode . company-box-mode)
     :custom
     (company-box-icons-alist 'company-box-icons-all-the-icons))
   (use-package company-quickhelp
     :ensure t
-    :config
-    (my:enable-mode company-quickhelp-mode))
+    :hook (after-init . company-quickhelp-mode))
   (use-package company-tabnine
     :ensure t
     :config
-    (push 'company-tabnine company-backends)
+    (add-to-list 'company-backends #'company-tabnine :append)
     ;; (company-tabnine-install-binary)
     )
   )
+
 ;;;; elscreen
 (use-package elscreen
   :ensure t
+  :custom
+  (elscreen-prefix-key (kbd "C-z"))
+  (elscreen-tab-display-kill-screen nil)
+  (elscreen-tab-display-control nil)
+  (elscreen-display-screen-number nil)
   :config
   (use-package elscreen-w3m)
   (use-package elscreen-server)
   (use-package elscreen-color-theme)
-  (setq elscreen-tab-display-kill-screen nil)
-  (setq elscreen-tab-display-control nil)
-  (setq elscreen-display-screen-number nil)
   (use-package counsel
     :config
     (defun my:elscreen-recentf ()
@@ -559,8 +566,9 @@
   :config
   (setq migemo-command "cmigemo")
   (setq migemo-options '("-q" "--emacs"))
-  (if (file-exists-p "/usr/share/migemo/migemo-dict")
-      (setq migemo-dictionary "/usr/share/migemo/migemo-dict"))
+  (setq migemo-dictionary
+        (or (my:path-exists? "/usr/share/cmigemo/utf-8/migemo-dict")
+            (my:path-exists? "/usr/share/migemo/migemo-dict")))
   (setq migemo-user-dictionary nil)
   (setq migemo-regex-dictionary nil)
   (migemo-init))
@@ -668,48 +676,51 @@
 (use-package undo-tree
   :ensure t
   :diminish undo-tree-mode
-  :config
-  (my:enable-mode global-undo-tree-mode))
+  :hook (after-init . global-undo-tree-mode))
 
 ;;;; yasnippet
 (use-package yasnippet
   :ensure t
   :diminish yas-minor-mode
-  :defer t
+  :hook (prog-mode . yas-global-mode)
   :config
   (use-package yasnippet-snippets
     :ensure t)
   (setq yas-snippet-dirs (list (my:join my:d:share "snippets") yasnippet-snippets-dir))
-  (my:enable-mode yas-global-mode)
-  ;; Select snippet using helm
-  (defun shk-yas/helm-prompt (prompt choices &optional display-fn)
-    "Use helm to select a snippet. Put this into `yas-prompt-functions.'"
-    (interactive)
-    (setq display-fn (or display-fn 'identity))
-    (use-package helm-config
-      :config
-      (let (tmpsource cands result rmap)
-        (setq cands (mapcar (lambda (x) (funcall display-fn x)) choices))
-        (setq rmap (mapcar (lambda (x) (cons (funcall display-fn x) x)) choices))
-        (setq tmpsource
-              (list
-               (cons 'name prompt)
-               (cons 'candidates cands)
-               '(action . (("Expand" . (lambda (selection) selection))))
-               ))
-        (setq result (helm-other-buffer '(tmpsource) "*helm-select-yasnippet"))
-        (if (null result)
-            (signal 'quit "user quit!")
-          (cdr (assoc result rmap)))))))
+  (defvar company-mode/enable-yas t)
+  (defun company-mode/backend-with-yas (backend)
+    (if (or (not company-mode/enable-yas) (and (listp backend) (member 'company-yasnippet backend)))
+        backend
+      (append (if (consp backend) backend (list backend))
+              '(:with company-yasnippet))))
+  (defun map-company-yas-backend ()
+    (mapcar #'company-mode/backend-with-yas company-backends))
+  (setq company-backends (map-company-yas-backend)))
 
 ;;; Programming Language
 ;;;; projectile
 (use-package projectile
   :ensure t
-  :init
-  (setq projectile-mode t)
-  (setq projectile-enable-caching t)
-)
+  :custom
+  (projectile-enable-caching t)
+  (projectile-completion-system 'ivy)
+  (projectile-known-projects-file (my:join my:d:tmp "projectile-bookmarks.eld"))
+  :hook (after-init . projectile-mode))
+
+;;;; Neotree
+(use-package neotree
+  :ensure t
+  :after projectile
+  :bind (("<f8>" . neotree-toggle)
+         :map neotree-mode-map
+         ("a" . neotree-hidden-file-toggle)
+         ("^" . neotree-select-up-node)
+         ("<right>" . neotree-change-root))
+  :commands (neotree-show neotree-hide neotree-dir neotree-find)
+  :custom
+  (neo-theme 'icons)
+  (neo-smart-open t)
+  (neo-keymap-style 'concise))
 
 ;;;; flycheck
 (use-package flycheck
@@ -758,11 +769,10 @@
     )
   (use-package lsp-ui
     :ensure t
+    :hook (lsp-mode . lsp-ui-mode)
     :custom
     (lsp-ui-doc-max-width 60)
-    (lsp-ui-doc-max-height 20)
-    :config
-    (add-hook 'lsp-mode-hook 'lsp-ui-mode))
+    (lsp-ui-doc-max-height 20))
   )
 
 ;;;; C, C++
@@ -967,24 +977,23 @@
 
 ;;;; outline-(minor-)?mode
 (use-package outline
+  :bind (:map outline-minor-mode-map
+              ("<tab>" . outline-cycle)
+              ("C-c C-f" . outline-forward-same-level)
+              ("C-c C-b" . outline-backward-same-level)
+              ("C-c C-n" . outline-next-visible-heading)
+              ("C-c C-p" . outline-previous-visible-heading)
+              :map outline-mode-map
+              ("<tab>" . outline-cycle)))
   :init
   (use-package outline-magic
     :ensure t)
-  :bind (()
-         :map outline-minor-mode-map
-         ("<tab>" . outline-cycle)
-         ("C-c C-f" . outline-forward-same-level)
-         ("C-c C-b" . outline-backward-same-level)
-         ("C-c C-n" . outline-next-visible-heading)
-         ("C-c C-p" . outline-previous-visible-heading)
-         :map outline-mode-map
-         ("<tab>" . outline-cycle)))
 
 ;;; To Work
 ;;;; Wanderlust -- E-mail client:
 (use-package wl
   :ensure wanderlust
-  :disabled t
+  :commands (wl)
   :config
   (use-package mime-def)
   (use-package cp5022x
@@ -993,17 +1002,12 @@
     (my:add-to-list mime-charset-coding-system-alist (iso-2022-jp . cp50220)))
   (setq wl-mime-charset 'utf-8)
   (setq mime-situation-examples-file (my:join my:d:tmp "mime-example"))
-  (use-package mime-w3m
-    :if (executable-find "w3m"))
-  (use-package w3m-ems
-    :if (executable-find "w3m"))
   (use-package mime-setup
-    :if (locate-library "w3m")
-    :config
-    (setq mime-w3m-safe-url-regexp nil))
-  (setq mime-edit-split-message nil)
+    :preface
+    (setq mime-view-text/html-previewer 'shr
+          mime-setup-enable-inline-image 'shr))
   (use-package rail
-    :if (locate-library "rail")
+    :quelpa (rail :fetcher github :repo uwabami/rail)
     :init
     (setq rail-emulate-genjis t))
   (use-package elscreen-wl)
@@ -1128,21 +1132,8 @@
 %FILL[        ]{via: %f %r %R }")
   (setq twittering-retweet-format " RT @%s: %t"))
 
-;;;; gtags -- GNU Global
-(use-package helm-gtags
-  :ensure t
-  :diminish
-  :disabled t
-  :hook (prog-mode . helm-gtags-mode)
-  :bind (:map helm-gtags-mode-map
-              ("M-t" . helm-gtags-find-tag)
-              ("M-r" . helm-gtags-find-rtag)
-              ("M-s" . helm-gtags-find-symbol)
-              ("M-p" . helm-gtags-pop-stack))
-  :config
-  (my:enable-mode helm-gtags-mode))
-;;;; Git
-;;;; vc-mode
+;;;; VCS -- Git
+;; vc-mode
 (setq vc-follow-symlinks t)
 (setq vc-handled-backends nil)          ; no use vc-mode
 ;; remove hook
@@ -1153,15 +1144,21 @@
   :bind (("C-x g" . magit-status)))
 (use-package git-gutter
   :ensure t
-  :config
-  (global-git-gutter-mode)
-  (setq git-gutter:handled-backends '(git hg)))
+  :hook (after-init . global-git-gutter-mode)
+  :custom
+  (git-gutter:handled-backends '(git hg)))
+(use-package gitconfig-mode
+  :ensure t
+  :defer t)
 (use-package gitignore-mode
   :ensure t
   :defer t)
-(use-package helm-ghq
+(use-package counsel-ghq
+  :quelpa (counsel-ghq :fetcher github :repo windymelt/counsel-ghq))
+;;;; which-key
+(use-package which-key
   :ensure t
-  :defer t)
+  :hook (after-init . which-key-mode))
 ;;;; open-junk-file
 (use-package open-junk-file
   :ensure t
@@ -1170,15 +1167,15 @@
   (setq open-junk-file-format (my:locate-home "tmp/junk/%Y-%m-%d-%H%M%S.")))
 ;;;; recentf
 (use-package recentf
+  :custom
+  (recentf-save-file (my:join my:d:tmp "recentf"))
+  (recentf-max-menu-items 100)
+  (recentf-max-saved-items 5000)
+  (recentf-auto-cleanup 100)
+  (recentf-exclude '(".recentf" "COMMIT_EDITMSG" "/\\.emacs\\.d/elpa/"))
+  :hook (after-init . recentf-mode)
   :config
-  (setq recentf-save-file (my:join my:d:tmp "recentf"))
-  (setq recentf-max-menu-items 100)
-  (setq recentf-max-saved-items 5000)
-  (setq recentf-exclude '(".recentf"))
-  (setq recentf-auto-cleanup 100)
-  (setq recentf-auto-save-timer
-        (run-with-idle-timer 3000 t 'recentf-save-list))
-  (my:enable-mode recentf-mode)
+  (run-with-idle-timer 30 t '(lambda () (with-suppressed-message (recentf-save-list))))
   (use-package recentf-ext
     :ensure t))
 ;;;; mwim
@@ -1190,18 +1187,19 @@
 (use-package anzu
   :ensure t
   :diminish
-  :config
-  (setq anzu-use-migemo t)
-  (setq anzu-search-threshold 3000)
-  (my:enable-mode global-anzu-mode))
-;;;; highlight-indentation
-(use-package highlight-indentation
+  :hook (after-init . global-anzu-mode)
+  :custom
+  (anzu-use-migemo t)
+  (anzu-search-threshold 3000))
+;;;; highlight-indent-guides
+(use-package highlight-indent-guides
   :ensure t
-  :hook (html-mode . highlight-indentation-mode)
-  :config
-  ;; (setq highlight-indentation-offset 4)
-  (set-face-background 'highlight-indentation-face "#e3e3d3")
-  (set-face-background 'highlight-indentation-current-column-face "#e3e3d3"))
+  :hook ((prog-mode yaml-mode) . highlight-indent-guides-mode)
+  :custom
+  (highlight-indent-guides-auto-enabled t)
+  (highlight-indent-guides-responsive t)
+  (highlight-indent-guides-method 'character)
+  (highlight-indent-guides-character ?ǀ))
 ;;;; expand-region
 (use-package expand-region
   :ensure t
@@ -1209,10 +1207,11 @@
          ("C-M-SPC" . er/contract-region)
          ("C-@" . er/expand-region)
          ("C-M-@" . er/contract-region))
+  :custom
+  (expand-region-smart-cursor t)
   :config
   (setq shift-select-mode nil)
-  (setq transient-mark-mode t)          ; transient-mark-mode が nil では動作しない
-  (setq expand-region-smart-cursor t))
+  (setq transient-mark-mode t))
 ;;;; multiple-cursors
 (use-package multiple-cursors
   :ensure t
@@ -1229,9 +1228,9 @@
 (use-package smartparens
   :ensure t
   :diminish
+  :hook (after-init . smartparens-global-mode)
   :config
-  (use-package smartparens-config)
-  (my:enable-mode smartparens-global-mode))
+  (use-package smartparens-config))
 ;;;; rainbow-delimiters
 (use-package rainbow-delimiters
   :ensure t
