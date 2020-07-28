@@ -175,7 +175,8 @@
   (doom-modeline-icon t)
   :config
   (my:enable-mode doom-modeline-mode))
-;;;; all-the-icons
+;;;; Font
+;; all-the-icons
 (use-package all-the-icons
   :ensure t
   :custom
@@ -188,7 +189,51 @@
     :ensure t
     :config
     (my:enable-mode all-the-icons-ibuffer-mode)))
-;;;; Font
+;; icons-in-terminal.el
+(use-package icons-in-terminal
+  :quelpa (icons-in-terminal :fetcher github :repo seagle0128/icons-in-terminal.el)
+  :after (all-the-icons)
+  :custom
+  (icons-in-terminal-scale-factor 1.0)
+  :config
+  (when (and window-system
+             (not (x-list-fonts "icons-in-terminal")))
+    (icons-in-terminal-install-font t))
+  (unless window-system
+    (defalias #'all-the-icons-insert #'icons-in-terminal-insert)
+    (defalias #'all-the-icons-insert-faicon #'icons-in-terminal-insert-faicon)
+    (defalias #'all-the-icons-insert-fileicon #'icons-in-terminal-insert-fileicon)
+    (defalias #'all-the-icons-insert-material #'icons-in-terminal-insert-material)
+    (defalias #'all-the-icons-insert-octicon #'icons-in-terminal-insert-octicon)
+    (defalias #'all-the-icons-insert-wicon #'icons-in-terminal-insert-wicon)
+
+    ;; (defalias #'all-the-icons-icon-for-dir #'icons-in-terminal-icon-for-dir)
+    (defalias #'all-the-icons-icon-for-dir-with-chevron #'icons-in-terminal-icon-for-dir)
+    (defalias #'all-the-icons-icon-for-file #'icons-in-terminal-icon-for-file)
+    (defalias #'all-the-icons-icon-for-mode #'icons-in-terminal-icon-for-mode)
+    (defalias #'all-the-icons-icon-for-url #'icons-in-terminal-icon-for-url)
+
+    (defalias #'all-the-icons-icon-family #'icons-in-terminal-icon-family)
+    (defalias #'all-the-icons-icon-family-for-buffer #'icons-in-terminal-icon-family-for-buffer)
+    (defalias #'all-the-icons-icon-family-for-file #'icons-in-terminal-icon-family-for-file)
+    (defalias #'all-the-icons-icon-family-for-mode #'icons-in-terminal-icon-family-for-mode)
+    (defalias #'all-the-icons-icon-for-buffer #'icons-in-terminal-icon-for-buffer)
+
+    (defalias #'all-the-icons-faicon #'icons-in-terminal-faicon)
+    (defalias #'all-the-icons-octicon #'icons-in-terminal-octicon)
+    (defalias #'all-the-icons-fileicon #'icons-in-terminal-fileicon)
+    (defalias #'all-the-icons-material #'icons-in-terminal-material)
+    (defalias #'all-the-icons-wicon #'icons-in-terminal-wicon)
+
+    (defalias 'icons-in-terminal-dir-icon-alist 'icons-in-terminal-dir-icon-spec)
+    (defalias 'icons-in-terminal-weather-icon-alist 'icons-in-terminal-weather-icon-spec)
+
+    (defalias 'all-the-icons-default-adjust 'icons-in-terminal-default-adjust)
+    (defalias 'all-the-icons-color-icons 'icons-in-terminal-color-icons)
+    (defalias 'all-the-icons-scale-factor 'icons-in-terminal-scale-factor)
+    (defalias 'all-the-icons-icon-alist 'icons-in-terminal-icon-alist)
+    (defalias 'all-the-icons-dir-icon-alist 'icons-in-terminal-dir-icon-alist)
+    (defalias 'all-the-icons-weather-icon-alist 'icons-in-terminal-weather-icon-alist)))
 ;; Cica: https://github.com/miiton/Cica
 (when window-system
   (set-fontset-font "fontset-standard" 'unicode (font-spec :family "Cica" :size 16))
@@ -468,8 +513,8 @@
 ;; avy
 (use-package avy
   :ensure t
-  :bind (("C-:" . avy-goto-char-timer)
-         ("C-;" . avy-goto-line)))
+  :bind (("C-^" . avy-goto-char-timer)
+         ("C-]" . avy-goto-line)))
 (use-package avy-migemo
   :ensure t
   :disabled t
