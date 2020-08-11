@@ -192,7 +192,7 @@
 ;; icons-in-terminal.el
 (use-package icons-in-terminal
   :quelpa (icons-in-terminal :fetcher github :repo seagle0128/icons-in-terminal.el)
-  :after (all-the-icons)
+  :after all-the-icons
   :custom
   (icons-in-terminal-scale-factor 1.0)
   :config
@@ -234,6 +234,11 @@
     (defalias 'all-the-icons-icon-alist 'icons-in-terminal-icon-alist)
     (defalias 'all-the-icons-dir-icon-alist 'icons-in-terminal-dir-icon-alist)
     (defalias 'all-the-icons-weather-icon-alist 'icons-in-terminal-weather-icon-alist)))
+(use-package locale-eaw-emoji
+  :quelpa (locale-eaw-emoji :fetcher github :repo uwabami/locale-eaw-emoji)
+  :after icons-in-terminal
+  :config
+  (eaw-and-emoji-fullwidth))
 ;; Cica: https://github.com/miiton/Cica
 (when window-system
   (set-fontset-font "fontset-standard" 'unicode (font-spec :family "Cica" :size 16))
@@ -484,9 +489,11 @@
     (my:enable-mode ivy-posframe-mode))
   (use-package ivy-prescient
     :ensure t
-    :hook (after-init . ivy-prescient-mode)
+    :hook (ivy-mode . ivy-prescient-mode)
     :custom
     (ivy-prescient-retain-classic-highlighting t)
+    :config
+    (setf (alist-get 'swiper ivy-re-builders-alist) #'my:ivy-migemo-re-builder)
     ;; (setf (alist-get t ivy-re-builders-alist) #'ivy--regex-ignore-order)
     ))
 ;; counsel
@@ -501,7 +508,8 @@
          ("C-M-g" . counsel-ag))
   :hook (after-init . counsel-mode)
   :custom
-  (counsel-yank-pop-separator "\n--------\n"))
+  (counsel-yank-pop-separator "\n--------\n")
+  (kill-ring-max 1000))
 ;; swiper
 (use-package swiper
   :ensure t
@@ -517,10 +525,22 @@
          ("C-]" . avy-goto-line)))
 (use-package avy-migemo
   :ensure t
-  :disabled t
-  :config
-  (my:enable-mode avy-migemo-mode)
-  (use-package avy-migemo-e.g.swiper))
+  :bind (("C-^" . avy-migemo-goto-char-timer))
+  :init
+  (defun my:ivy-migemo-re-builder (str)
+    "Own ivy-migemo-re-build for swiper."
+    (let* ((sep " \\|\\^\\|\\.\\|\\*")
+           (splitted (--map (s-join "" it)
+                            (--partition-by (s-matches-p " \\|\\^\\|\\.\\|\\*" it)
+                                            (s-split "" str t)))))
+      (s-join "" (--map (cond ((s-equals? it " ") ".*?")
+                              ((s-matches? sep it) it)
+                              (t (migemo-get-pattern it)))
+                        splitted))))
+  :custom
+  (avy-migemo-at-full-max 2)
+  ;; (use-package avy-migemo-e.g.swiper)
+  )
 ;; ace-window
 (use-package ace-window
   :ensure t
@@ -557,10 +577,10 @@
   :config
   (use-package company-flx
     :ensure t
-    :hook (after-init . company-flx-mode))
+    :hook (company-mode . company-flx-mode))
   (use-package company-prescient
     :ensure t
-    :hook (after-init . company-prescient-mode))
+    :hook (company-mode . company-prescient-mode))
   (use-package company-box
     :ensure t
     :hook (company-mode . company-box-mode)
@@ -568,7 +588,7 @@
     (company-box-icons-alist 'company-box-icons-all-the-icons))
   (use-package company-quickhelp
     :ensure t
-    :hook (after-init . company-quickhelp-mode))
+    :hook (company-mode . company-quickhelp-mode))
   (use-package company-tabnine
     :ensure t
     :config
@@ -576,6 +596,37 @@
     ;; (company-tabnine-install-binary)
     )
   )
+
+;;;; Centaur tabs
+(use-package centaur-tabs
+  :ensure t
+  :disabled t
+  :hook (after-init . centaur-tabs-mode)
+  :bind
+  (:map centaur-tabs-prefix-map
+        ("n" . centaur-tabs-forward)
+        ("C-n" . centaur-tabs-forward)
+        ("p" . centaur-tabs-backward)
+        ("C-p" . centaur-tabs-backward)
+        ("k" . kill-current-buffer)
+        ("C-k" . kill-current-buffer)
+        ("f" . centaur-tabs-forward-group)
+        ("C-f" . centaur-tabs-forward-group)
+        ("b" . centaur-tabs-backward-group)
+        ("C-b" . centaur-tabs-backward-group)
+        ("C-a" . centaur-tabs-select-beg-tab)
+        ("C-e" . centaur-tabs-select-end-tab)
+        )
+  :custom
+  (centaur-tabs-prefix-key (kbd "C-z"))
+  (centaur-tabs-style "bar")
+  (centaur-tabs-height 24)
+  (centaur-tabs-set-icons t)
+  (centaur-tabs-set-bar 'left)
+  (centaur-tabs-set-modified-marker t)
+  (centaur-tabs-cycle-scope 'tabs)
+  :config
+  (centaur-tabs-group-by-projectile-project))
 
 ;;;; elscreen
 (use-package elscreen
@@ -586,7 +637,6 @@
   (elscreen-tab-display-control nil)
   (elscreen-display-screen-number nil)
   :config
-  (use-package elscreen-w3m)
   (use-package elscreen-server)
   (use-package elscreen-color-theme)
   (use-package counsel
@@ -606,16 +656,16 @@
   :ensure t
   :if (and (executable-find "cmigemo")
            (locate-library "migemo"))
-  :hook (isearch-mode . migemo-init)
-  :init (setq migemo-coding-system 'utf-8-unix)
+  :custom
+  (migemo-coding-system 'utf-8-unix)
+  (migemo-command "cmigemo")
+  (migemo-dictionary
+   (or (my:path-exists? "/usr/share/cmigemo/utf-8/migemo-dict")
+       (my:path-exists? "/usr/share/migemo/migemo-dict")))
+  (migemo-regex-dictionary nil)
+  (migemo-user-dictionary nil)
+  (migemo-options '("-q" "--emacs"))
   :config
-  (setq migemo-command "cmigemo")
-  (setq migemo-options '("-q" "--emacs"))
-  (setq migemo-dictionary
-        (or (my:path-exists? "/usr/share/cmigemo/utf-8/migemo-dict")
-            (my:path-exists? "/usr/share/migemo/migemo-dict")))
-  (setq migemo-user-dictionary nil)
-  (setq migemo-regex-dictionary nil)
   (migemo-init))
 
 ;;;; ddskk
@@ -673,9 +723,19 @@
 	                skk-kuten-touten-alist)))
   (setq-default skk-kutouten-type 'my-jp))
 
+
+;;;; eww
+(use-package eww
+  :preface
+  (setq my:d:eww (my:join my:d:tmp "eww"))
+  :custom
+  (eww-bookmarks-directory my:d:eww)
+  (eww-history-limit 9999)
+  (eww-search-prefix "https://www.google.com/search?q="))
 ;;;; emacs-w3m
 (use-package w3m
   :ensure t
+  :disabled t
   :if (executable-find "w3m")
   :bind (:map w3m-mode-map
               ("S" . w3m-db-history))
@@ -727,6 +787,7 @@
 (use-package yasnippet
   :ensure t
   :diminish yas-minor-mode
+  :after company
   :hook (prog-mode . yas-global-mode)
   :config
   (use-package yasnippet-snippets
@@ -738,19 +799,26 @@
         backend
       (append (if (consp backend) backend (list backend))
               '(:with company-yasnippet))))
-  (defun map-company-yas-backend ()
-    (mapcar #'company-mode/backend-with-yas company-backends))
-  (setq company-backends (map-company-yas-backend)))
+  (setq company-backends (mapcar #'company-mode/backend-with-yas company-backends)))
 
 ;;; Programming Language
 ;;;; projectile
 (use-package projectile
   :ensure t
+  :after counsel
+  :hook (after-init . projectile-mode)
   :custom
   (projectile-enable-caching t)
   (projectile-completion-system 'ivy)
   (projectile-known-projects-file (my:join my:d:tmp "projectile-bookmarks.eld"))
-  :hook (after-init . projectile-mode))
+  :config
+  (when (featurep 'counsel)
+    (use-package counsel-projectile
+      :ensure t
+      :bind
+      (:map projectile-mode-map
+            ("C-c p" . projectile-command-map)
+            ("C-c C-p" . projectile-command-map)))))
 
 ;;;; Neotree
 (use-package neotree
@@ -803,15 +871,10 @@
   ;; (lsp-enable-completion-at-point nil)
   :config
   (setq lsp-restart 'auto-restart)
-  (use-package company-lsp
-    :ensure t
-    :custom
-    (company-lsp-cache-candidates t)
-    (company-lsp-async t)
-    ;; (company-lsp-enable-recompletion nil)
+  (use-package company-capf
+    :after (company lsp-mode)
     :config
-    (push 'company-lsp company-backends)
-    )
+    (push 'company-capf company-backends))
   (use-package lsp-ui
     :ensure t
     :hook (lsp-mode . lsp-ui-mode)
@@ -1177,6 +1240,12 @@
 %FILL[        ]{via: %f %r %R }")
   (setq twittering-retweet-format " RT @%s: %t"))
 
+;;;; SSH
+;; ssh-config-mode
+(use-package ssh-config-mode
+  :ensure t
+  :custom
+  (ssh-config-mode-indent 4))
 ;;;; VCS -- Git
 ;; vc-mode
 (setq vc-follow-symlinks t)
@@ -1199,7 +1268,8 @@
   :ensure t
   :defer t)
 (use-package counsel-ghq
-  :quelpa (counsel-ghq :fetcher github :repo windymelt/counsel-ghq))
+  :quelpa (counsel-ghq :fetcher github :repo windymelt/counsel-ghq)
+  :bind ("C-c g" . counsel-ghq))
 ;;;; which-key
 (use-package which-key
   :ensure t
