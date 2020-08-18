@@ -1,11 +1,11 @@
 ;;; init.el --- Emacs Initialization File -*- lexical-binding: t -*-
 
 ;; Filename: init.el
-;; Description: my emacs configuration 
+;; Description: my emacs configuration
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi@ai.cs.ehime-u.ac.jp>
 ;; Created: 2018-05-26
-;; Modified: 2020-07-07
+;; Modified: 2020-08-19
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -36,16 +36,19 @@
 ;;; Startup
 ;;;; Tuning and Speed Up:
 (setq gc-cons-percentage 1.0
-      gc-cons-threshold (* 1024 1024 1024))
+      gc-cons-threshold (* 1024 1024 1024)
+      read-process-output-max (* 64 1024 1024))
 (add-hook
  'after-init-hook
  `(lambda ()
-    (setq gc-cons-threshold (* 8 1024 1024)
-          gc-cons-percentage 0.1)
+    (setq gc-cons-threshold (* 128 1024 1024)
+          gc-cons-percentage 0.5
+          read-process-output-max (* 16 1024 1024))
     (garbage-collect)) t)
 
 ;;;; cl-lib -- load Common Lisp library:
-(require 'cl-lib)
+(eval-when-compile (require 'cl-lib nil t))
+(setq byte-compile-warnings '(cl-functions))
 
 ;;; System Local
 (defvar my:distrib-id nil)
@@ -55,43 +58,45 @@
   (setq my:gentoo-p t))
 
 ;;; My Functions and Macros -- prefix "my:"
-;; not eq
 (defun my:ne (x y &optional comp)
+  "Return t if X not eq Y.
+COMP is used instead of eq when COMP is given."
   (not
    (if comp
        (funcall comp x y)
      (eq x y))))
-;; like Python's os.path.join()
 (defun my:join (a b)
+  "Python's os.path.join(A, B)."
   (concat a
           (when (my:ne (substring a -1) "/" 'string-equal) "/")
           b))
-;; return path if path exists else nil
 (defun my:path-exists? (path)
+  "Return PATH if PATH exists else nil."
   (if (file-exists-p path)
       path
     nil))
-;; my:locate-user-emacs-file
 (defun my:locate-user-emacs-file (x)
-  "Expand filename locate-user-emacs-file"
+  "Expand filename (locate-user-emacs-file X)."
   (expand-file-name (locate-user-emacs-file x)))
 ;; my:locate-home
 (defconst HOME (getenv "HOME"))
 (defun my:locate-home (x)
-  "Concat and Expand path from HOME"
+  "Concat and expand path X from HOME."
   (expand-file-name (my:join HOME x)))
 ;; mode enable/disable
 (defmacro my:enable-mode (mode)
+  "Enable MODE."
   `(,mode 1))
 (defmacro my:disable-mode (mode)
+  "Disable MODE."
   `(,mode 0))
-;; my:add-to-list, add function to hook
+;; add-to-list, add-function-to-hook
 (cl-defmacro my:add-to-list (list &optional &body elements)
   `(cl-loop for e in ',elements
             do (add-to-list ',list e)))
 (cl-defmacro my:add-function-to-hook (function &optional &body hooks)
   (cl-loop for target-hook in hooks
-           do (add-hook (intern (concat (symbol-name target-hook) "-mode-hook"))
+           do (add-hook (intern (concat (symbol-name target-hook) "-hook"))
                         function)))
 ;; suppressed message
 (defmacro with-suppressed-message (&rest body)
@@ -175,6 +180,11 @@
   (doom-modeline-icon t)
   :config
   (my:enable-mode doom-modeline-mode))
+;; hide-mode-line
+(use-package hide-mode-line
+  :ensure t
+  :hook
+  ((neotree-mode imenu-list-minor-mode) . hide-mode-line-mode))
 ;;;; Font
 ;; all-the-icons
 (use-package all-the-icons
@@ -187,59 +197,51 @@
     :hook (dired-mode . all-the-icons-dired-mode))
   (use-package all-the-icons-ibuffer
     :ensure t
-    :config
-    (my:enable-mode all-the-icons-ibuffer-mode)))
-;; icons-in-terminal.el
+    :hook (after-init . all-the-icons-ibuffer-mode)))
+;; icons-in-terminal.el -- for non-GUI
 (use-package icons-in-terminal
   :quelpa (icons-in-terminal :fetcher github :repo seagle0128/icons-in-terminal.el)
+  :if (not window-system)
   :after all-the-icons
+  :no-require t
   :custom
   (icons-in-terminal-scale-factor 1.0)
   :config
-  (when (and window-system
-             (not (x-list-fonts "icons-in-terminal")))
-    (icons-in-terminal-install-font t))
-  (unless window-system
-    (defalias #'all-the-icons-insert #'icons-in-terminal-insert)
-    (defalias #'all-the-icons-insert-faicon #'icons-in-terminal-insert-faicon)
-    (defalias #'all-the-icons-insert-fileicon #'icons-in-terminal-insert-fileicon)
-    (defalias #'all-the-icons-insert-material #'icons-in-terminal-insert-material)
-    (defalias #'all-the-icons-insert-octicon #'icons-in-terminal-insert-octicon)
-    (defalias #'all-the-icons-insert-wicon #'icons-in-terminal-insert-wicon)
+  (defalias #'all-the-icons-insert #'icons-in-terminal-insert)
+  (defalias #'all-the-icons-insert-faicon #'icons-in-terminal-insert-faicon)
+  (defalias #'all-the-icons-insert-fileicon #'icons-in-terminal-insert-fileicon)
+  (defalias #'all-the-icons-insert-material #'icons-in-terminal-insert-material)
+  (defalias #'all-the-icons-insert-octicon #'icons-in-terminal-insert-octicon)
+  (defalias #'all-the-icons-insert-wicon #'icons-in-terminal-insert-wicon)
 
-    ;; (defalias #'all-the-icons-icon-for-dir #'icons-in-terminal-icon-for-dir)
-    (defalias #'all-the-icons-icon-for-dir-with-chevron #'icons-in-terminal-icon-for-dir)
-    (defalias #'all-the-icons-icon-for-file #'icons-in-terminal-icon-for-file)
-    (defalias #'all-the-icons-icon-for-mode #'icons-in-terminal-icon-for-mode)
-    (defalias #'all-the-icons-icon-for-url #'icons-in-terminal-icon-for-url)
+  ;; (defalias #'all-the-icons-icon-for-dir #'icons-in-terminal-icon-for-dir)
+  (defalias #'all-the-icons-icon-for-dir-with-chevron #'icons-in-terminal-icon-for-dir)
+  (defalias #'all-the-icons-icon-for-file #'icons-in-terminal-icon-for-file)
+  (defalias #'all-the-icons-icon-for-mode #'icons-in-terminal-icon-for-mode)
+  (defalias #'all-the-icons-icon-for-url #'icons-in-terminal-icon-for-url)
 
-    (defalias #'all-the-icons-icon-family #'icons-in-terminal-icon-family)
-    (defalias #'all-the-icons-icon-family-for-buffer #'icons-in-terminal-icon-family-for-buffer)
-    (defalias #'all-the-icons-icon-family-for-file #'icons-in-terminal-icon-family-for-file)
-    (defalias #'all-the-icons-icon-family-for-mode #'icons-in-terminal-icon-family-for-mode)
-    (defalias #'all-the-icons-icon-for-buffer #'icons-in-terminal-icon-for-buffer)
+  (defalias #'all-the-icons-icon-family #'icons-in-terminal-icon-family)
+  (defalias #'all-the-icons-icon-family-for-buffer #'icons-in-terminal-icon-family-for-buffer)
+  (defalias #'all-the-icons-icon-family-for-file #'icons-in-terminal-icon-family-for-file)
+  (defalias #'all-the-icons-icon-family-for-mode #'icons-in-terminal-icon-family-for-mode)
+  (defalias #'all-the-icons-icon-for-buffer #'icons-in-terminal-icon-for-buffer)
 
-    (defalias #'all-the-icons-faicon #'icons-in-terminal-faicon)
-    (defalias #'all-the-icons-octicon #'icons-in-terminal-octicon)
-    (defalias #'all-the-icons-fileicon #'icons-in-terminal-fileicon)
-    (defalias #'all-the-icons-material #'icons-in-terminal-material)
-    (defalias #'all-the-icons-wicon #'icons-in-terminal-wicon)
+  (defalias #'all-the-icons-faicon #'icons-in-terminal-faicon)
+  (defalias #'all-the-icons-octicon #'icons-in-terminal-octicon)
+  (defalias #'all-the-icons-fileicon #'icons-in-terminal-fileicon)
+  (defalias #'all-the-icons-material #'icons-in-terminal-material)
+  (defalias #'all-the-icons-wicon #'icons-in-terminal-wicon)
 
-    (defalias 'icons-in-terminal-dir-icon-alist 'icons-in-terminal-dir-icon-spec)
-    (defalias 'icons-in-terminal-weather-icon-alist 'icons-in-terminal-weather-icon-spec)
+  (defalias 'icons-in-terminal-dir-icon-alist 'icons-in-terminal-dir-icon-spec)
+  (defalias 'icons-in-terminal-weather-icon-alist 'icons-in-terminal-weather-icon-spec)
 
-    (defalias 'all-the-icons-default-adjust 'icons-in-terminal-default-adjust)
-    (defalias 'all-the-icons-color-icons 'icons-in-terminal-color-icons)
-    (defalias 'all-the-icons-scale-factor 'icons-in-terminal-scale-factor)
-    (defalias 'all-the-icons-icon-alist 'icons-in-terminal-icon-alist)
-    (defalias 'all-the-icons-dir-icon-alist 'icons-in-terminal-dir-icon-alist)
-    (defalias 'all-the-icons-weather-icon-alist 'icons-in-terminal-weather-icon-alist)))
-(use-package locale-eaw-emoji
-  :quelpa (locale-eaw-emoji :fetcher github :repo uwabami/locale-eaw-emoji)
-  :after icons-in-terminal
-  :config
-  (eaw-and-emoji-fullwidth))
-;; Cica: https://github.com/miiton/Cica
+  (defalias 'all-the-icons-default-adjust 'icons-in-terminal-default-adjust)
+  (defalias 'all-the-icons-color-icons 'icons-in-terminal-color-icons)
+  (defalias 'all-the-icons-scale-factor 'icons-in-terminal-scale-factor)
+  (defalias 'all-the-icons-icon-alist 'icons-in-terminal-icon-alist)
+  (defalias 'all-the-icons-dir-icon-alist 'icons-in-terminal-dir-icon-alist)
+  (defalias 'all-the-icons-weather-icon-alist 'icons-in-terminal-weather-icon-alist))
+;; Fontset -- Cica: https://github.com/miiton/Cica
 (when window-system
   (set-fontset-font "fontset-standard" 'unicode (font-spec :family "Cica" :size 16))
   (use-package all-the-icons
@@ -253,7 +255,7 @@
     (set-fontset-font "fontset-standard" 'unicode (font-spec :family (all-the-icons-octicon-family)) nil 'append)
     (set-fontset-font "fontset-standard" 'unicode (font-spec :family (all-the-icons-wicon-family)) nil 'append))
   (set-face-font 'default "fontset-standard")
-  (my:add-to-list default-frame-alist (font . "fontset-standard"))
+  (add-to-list 'default-frame-alist '(font . "fontset-standard"))
   (setq initial-frame-alist default-frame-alist))
 ;;;; Misc.
 ;; disable menu-bar, tool-bar, scroll-bar
@@ -265,6 +267,7 @@
 (add-to-list 'default-frame-alist '(cursor-type . bar))
 ;; truncate lines
 (setq-default truncate-lines t)
+(my:add-function-to-hook (lambda () (setq-local truncate-lines nil)) org-mode)
 ;; transparent-mode
 (use-package tp-mode
   :if window-system
@@ -282,7 +285,7 @@
 ;; highlight line
 (my:enable-mode global-hl-line-mode)
 (my:add-function-to-hook
- (lambda () (progn (my:disable-mode linum-mode) (my:disable-mode hl-line-mode))) doc-view)
+ (lambda () (progn (my:disable-mode linum-mode) (my:disable-mode hl-line-mode))) doc-view-mode)
 ;; show paren
 (use-package paren
   :ensure nil
@@ -338,7 +341,7 @@
 (setq scroll-conservatively 35
       scroll-margin 0
       scroll-step 1)
-(setq comint-scroll-show-maximum-output t) ;; for shell-mode
+(setq comint-scroll-show-maximum-output t) ; for shell-mode
 ;; *.~ / .#* no back up
 (setq make-backup-files nil
       auto-save-default nil
@@ -360,6 +363,10 @@
 (setq kill-whole-line t)
 ;; global-auto-revert-mode
 (my:enable-mode global-auto-revert-mode)
+;; time-stamp
+(use-package time-stamp
+  :commands time-stamp
+  :hook (before-save . #'time-stamp))
 ;; Emacs Server
 (use-package server
   :init
@@ -377,9 +384,9 @@
   :defer t
   :config
   (use-package dired-async))
-(setq dired-dwim-target t) ;; default copy target in 2 windows
-(setq dired-recursive-copies 'always) ;; recursive directory copy
-(setq dired-isearch-filenames t) ;; only match filenames
+(setq dired-dwim-target t               ; default copy target in 2 windows
+      dired-recursive-copies 'always    ; recursive directory copy
+      dired-isearch-filenames t)        ; only match filenames
 ;; generic-x
 (use-package generic-x)
 ;; save last opened place
@@ -451,7 +458,8 @@
   (prescient-aggressive-file-save t)
   (prescient-save-file (my:join my:d:tmp "prescient-save.el"))
   (prescient-history-length 5000)
-  :hook (after-init . prescient-persist-mode))
+  :config
+  (my:enable-mode prescient-persist-mode))
 ;;;; counsel/ivy, swiper
 ;; ivy
 (use-package ivy
@@ -466,18 +474,17 @@
   (ivy-count-format (concat (all-the-icons-faicon "sort-amount-asc") " (%d/%d) "))
   :config
   (setq ivy-re-builders-alist '((t . ivy--regex-ignore-order)))
-  (setq ivy-initial-inputs-alist '((t . "")))
   (setq enable-recursive-minibuffers t)
   ;; all-the-icons-ivy
   (use-package all-the-icons-ivy
     :ensure t)
   (use-package all-the-icons-ivy-rich
     :ensure t
-    :hook (after-init . all-the-icons-ivy-rich-mode))
+    :hook (ivy-mode . all-the-icons-ivy-rich-mode))
   ;; ivy-rich
   (use-package ivy-rich
     :ensure t
-    :hook (after-init . ivy-rich-mode))
+    :hook (ivy-mode . ivy-rich-mode))
   ;; ivy-posframe
   (use-package ivy-posframe
     :ensure t
@@ -500,16 +507,18 @@
 (use-package counsel
   :ensure t
   :diminish
+  :hook (ivy-mode . counsel-mode)
   :bind (("M-x" . counsel-M-x)
          ("C-x C-f" . counsel-find-file)
          ("C-x C-r" . counsel-recentf)
          ("M-y" . counsel-yank-pop)
          ("C-x b" . counsel-switch-buffer)
          ("C-M-g" . counsel-ag))
-  :hook (after-init . counsel-mode)
   :custom
   (counsel-yank-pop-separator "\n--------\n")
-  (kill-ring-max 1000))
+  (kill-ring-max 1000)
+  :config
+  (setq ivy-initial-inputs-alist '((t . ""))))
 ;; swiper
 (use-package swiper
   :ensure t
@@ -559,15 +568,20 @@
 (use-package company
   :ensure t
   :diminish company-mode
+  :hook (after-init . global-company-mode)
+         ;;(emacs-lisp-mode . ,(lambda () (add-to-list 'company-backends 'company-elisp))))
   :bind (:map company-active-map
               ("C-n" . company-select-next)
+              ("j" . company-select-next)
               ("C-p" . company-select-previous)
+              ("k" . company-select-previous)
               ("<tab>" . company-complete-selection)
               :map company-search-map
               ("C-n" . company-select-next)
-              ("C-p" . company-select-previous))
-  :hook (after-init . global-company-mode)
-  :custom
+              ("j" . company-select-next)
+              ("C-p" . company-select-previous)
+              ("k" . company-select-previous))
+   :custom
   (company-transformers '(company-sort-by-backend-importance))
   (company-idle-delay 0.01)
   (company-selection-wrap-around t)
@@ -575,6 +589,7 @@
   (completion-ignore-case t)
   (company-show-numbers t)
   :config
+  (add-hook 'emacs-lisp-mode-hook #'(lambda () (add-to-list 'company-backends 'company-elisp)))
   (use-package company-flx
     :ensure t
     :hook (company-mode . company-flx-mode))
@@ -583,9 +598,46 @@
     :hook (company-mode . company-prescient-mode))
   (use-package company-box
     :ensure t
+    :no-require t
     :hook (company-mode . company-box-mode)
     :custom
-    (company-box-icons-alist 'company-box-icons-all-the-icons))
+    (company-box-icons-alist 'company-box-icons-all-the-icons)
+    :config
+    (setq company-box-icons-unknown 'fa_question_circle)
+    (setq company-box-icons-elisp
+          '((fa_tag :face font-lock-function-name-face) ;; Function
+            (fa_cog :face font-lock-variable-name-face) ;; Variable
+            (fa_cube :face font-lock-constant-face) ;; Feature
+            (md_color_lens :face font-lock-doc-face))) ;; Face
+    (setq company-box-icons-yasnippet 'fa_bookmark)
+    (setq company-box-icons-lsp
+          '((1 . fa_text_height) ;; Text
+            (2 . (fa_tags :face font-lock-function-name-face)) ;; Method
+            (3 . (fa_tag :face font-lock-function-name-face)) ;; Function
+            (4 . (fa_tag :face font-lock-function-name-face)) ;; Constructor
+            (5 . (fa_cog :foreground "#FF9800")) ;; Field
+            (6 . (fa_cog :foreground "#FF9800")) ;; Variable
+            (7 . (fa_cube :foreground "#7C4DFF")) ;; Class
+            (8 . (fa_cube :foreground "#7C4DFF")) ;; Interface
+            (9 . (fa_cube :foreground "#7C4DFF")) ;; Module
+            (10 . (fa_cog :foreground "#FF9800")) ;; Property
+            (11 . md_settings_system_daydream) ;; Unit
+            (12 . (fa_cog :foreground "#FF9800")) ;; Value
+            (13 . (md_storage :face font-lock-type-face)) ;; Enum
+            (14 . (md_closed_caption :foreground "#009688")) ;; Keyword
+            (15 . md_closed_caption) ;; Snippet
+            (16 . (md_color_lens :face font-lock-doc-face)) ;; Color
+            (17 . fa_file_text_o) ;; File
+            (18 . md_refresh) ;; Reference
+            (19 . fa_folder_open) ;; Folder
+            (20 . (md_closed_caption :foreground "#009688")) ;; EnumMember
+            (21 . (fa_square :face font-lock-constant-face)) ;; Constant
+            (22 . (fa_cube :face font-lock-type-face)) ;; Struct
+            (23 . fa_calendar) ;; Event
+            (24 . fa_square_o) ;; Operator
+            (25 . fa_arrows)) ;; TypeParameter
+          )
+    )
   (use-package company-quickhelp
     :ensure t
     :hook (company-mode . company-quickhelp-mode))
@@ -594,43 +646,36 @@
     :config
     (add-to-list 'company-backends #'company-tabnine :append)
     ;; (company-tabnine-install-binary)
-    )
-  )
+    ))
 
-;;;; Centaur tabs
-(use-package centaur-tabs
-  :ensure t
-  :disabled t
-  :hook (after-init . centaur-tabs-mode)
-  :bind
-  (:map centaur-tabs-prefix-map
-        ("n" . centaur-tabs-forward)
-        ("C-n" . centaur-tabs-forward)
-        ("p" . centaur-tabs-backward)
-        ("C-p" . centaur-tabs-backward)
-        ("k" . kill-current-buffer)
-        ("C-k" . kill-current-buffer)
-        ("f" . centaur-tabs-forward-group)
-        ("C-f" . centaur-tabs-forward-group)
-        ("b" . centaur-tabs-backward-group)
-        ("C-b" . centaur-tabs-backward-group)
-        ("C-a" . centaur-tabs-select-beg-tab)
-        ("C-e" . centaur-tabs-select-end-tab)
-        )
+;;;; Tab
+;; Tab-bar-mode or Elscreen
+(defvar tab-bar-p (version<= "27" emacs-version))
+(use-package tab-bar
+  :if tab-bar-p
+  :hook (after-init . tab-bar-mode)
   :custom
-  (centaur-tabs-prefix-key (kbd "C-z"))
-  (centaur-tabs-style "bar")
-  (centaur-tabs-height 24)
-  (centaur-tabs-set-icons t)
-  (centaur-tabs-set-bar 'left)
-  (centaur-tabs-set-modified-marker t)
-  (centaur-tabs-cycle-scope 'tabs)
-  :config
-  (centaur-tabs-group-by-projectile-project))
-
-;;;; elscreen
+  (tab-bar-new-button-show nil)
+  (tab-bar-close-button-show nil)
+  (tab-bar-tab-name-function
+   #'(lambda () (concat "ǀ " (tab-bar-tab-name-current-with-count))))
+  :init
+  (defvar my-tab-bar-map (make-sparse-keymap))
+  (bind-keys :prefix-map my-tab-bar-map
+             :prefix "C-z"
+             ("c" . tab-new)
+             ("C-c" . tab-new)
+             ("k" . tab-close)
+             ("C-k" . tab-close)
+             ("n" . tab-next)
+             ("C-n" . tab-next)
+             ("p" . tab-previous)
+             ("C-p" . tab-previous)
+             ("z" . tab-recent)
+             ("C-z" . tab-recent)))
 (use-package elscreen
   :ensure t
+  :if (not tab-bar-p)
   :custom
   (elscreen-prefix-key (kbd "C-z"))
   (elscreen-tab-display-kill-screen nil)
@@ -650,7 +695,37 @@
         ))
     (bind-keys :map elscreen-map ("C-r" . my:elscreen-recentf)))
   (elscreen-start))
+;; Centaur tabs
+(use-package centaur-tabs
+  :ensure t
+  :disabled t
+  :hook (after-init . centaur-tabs-mode)
+  :bind
+  (:map centaur-tabs-prefix-map
+        ("n" . centaur-tabs-forward)
+        ("C-n" . centaur-tabs-forward)
+        ("p" . centaur-tabs-backward)
+        ("C-p" . centaur-tabs-backward)
+        ("k" . kill-current-buffer)
+        ("C-k" . kill-current-buffer)
+        ("f" . centaur-tabs-forward-group)
+        ("C-f" . centaur-tabs-forward-group)
+        ("b" . centaur-tabs-backward-group)
+        ("C-b" . centaur-tabs-backward-group)
+        ("C-a" . centaur-tabs-select-beg-tab)
+        ("C-e" . centaur-tabs-select-end-tab))
+  :custom
+  (centaur-tabs-prefix-key (kbd "C-z"))
+  (centaur-tabs-style "bar")
+  (centaur-tabs-height 24)
+  (centaur-tabs-set-icons t)
+  (centaur-tabs-set-bar 'left)
+  (centaur-tabs-set-modified-marker t)
+  (centaur-tabs-cycle-scope 'tabs)
+  :config
+  (centaur-tabs-group-by-projectile-project))
 
+;;; Text
 ;;;; migemo
 (use-package migemo
   :ensure t
@@ -667,8 +742,7 @@
   (migemo-options '("-q" "--emacs"))
   :config
   (migemo-init))
-
-;;;; ddskk
+;;;; IME -- ddskk
 (defvar my:d:skk (my:join my:d:nextcloud "app/SKK"))
 (setq skk-large-jisyo (my:join my:d:skk "SKK-JISYO.L+emoji.utf8"))
 (use-package skk
@@ -722,8 +796,43 @@
               (cons '(my-en ". " . ", ")
 	                skk-kuten-touten-alist)))
   (setq-default skk-kutouten-type 'my-jp))
+;;;; Spell Checker
+;; ispell
+(use-package ispell
+  :custom
+  (ispell-program-name "hunspell")
+  :config
+  (defvar ispell-regexp-ja "[一-龠ぁ-🈀ァ-𛀀ー・、。々]+"
+    "Regular expression to match a Japanese word.
+The expression can be [^\000-\377]+, [^!-~]+, or [一-龠ぁ-🈀ァ-𛀀ー・、。々]+")
+  ;; (add-to-list 'ispell-skip-region-alist (list ispell-regexp-ja))
+  (defun flyspell-skip-ja (beg end info)
+    "Tell flyspell to skip a Japanese word.
+Call this on `flyspell-incorrect-hook'."
+    (string-match ispell-regexp-ja (buffer-substring beg end)))
+  (add-hook 'flyspell-incorrect-hook 'flyspell-skip-ja))
+;; flyspell
+(use-package flyspell
+  :hook ((org-mode text-mode LaTeX-mode) . flyspell-mode)
+  :config
+  (defvar flyspell-correct-map (make-sparse-keymap))
+  (use-package flyspell-correct-avy-menu
+    :ensure t
+    :init
+    (bind-keys :prefix-map flyspell-correct-map
+               :prefix "C-c"
+               ("s" . flyspell-correct-wrapper))))
+;;;; Translater
+(use-package google-translate
+  :ensure t
+  :bind
+  ("M-t" . google-translate-at-point)
+  ("M-r" . google-translate-at-point-reverse)
+  :custom
+  (google-translate-default-source-language "en")
+  (google-translate-default-target-language "ja"))
 
-
+;;; Common Packages
 ;;;; eww
 (use-package eww
   :preface
@@ -769,7 +878,6 @@
   (setq w3m-db-history-display-size 100000)
   ;; weather
   (setq w3m-weather-default-area "愛媛県・中予"))
-
 ;;;; undo
 ;; undohist
 (use-package undohist
@@ -782,7 +890,6 @@
   :ensure t
   :diminish undo-tree-mode
   :hook (after-init . global-undo-tree-mode))
-
 ;;;; yasnippet
 (use-package yasnippet
   :ensure t
@@ -801,6 +908,35 @@
               '(:with company-yasnippet))))
   (setq company-backends (mapcar #'company-mode/backend-with-yas company-backends)))
 
+;;; VCS -- Git
+;; vc-mode
+(setq vc-follow-symlinks t)
+(setq vc-handled-backends nil)          ; no use vc-mode
+;; remove hook
+(remove-hook 'find-file-hook 'vc-find-file-hook)
+(remove-hook 'kill-buffer-hook 'vc-kill-buffer-hook)
+(use-package magit
+  :ensure t
+  :bind ("C-x g" . magit-status))
+(use-package git-gutter
+  :ensure t
+  :hook (after-init . global-git-gutter-mode)
+  :custom
+  (git-gutter:handled-backends '(git hg))
+  :custom-face
+  (git-gutter:modified ((t (:foreground "#f1fa8c" :background "#f1fa8c"))))
+  (git-gutter:added    ((t (:foreground "#50fa7b" :background "#50fa7b"))))
+  (git-gutter:deleted  ((t (:foreground "#ff79c6" :background "#ff79c6")))))
+(use-package gitconfig-mode
+  :ensure t
+  :defer t)
+(use-package gitignore-mode
+  :ensure t
+  :defer t)
+(use-package counsel-ghq
+  :quelpa (counsel-ghq :fetcher github :repo windymelt/counsel-ghq)
+  :bind ("C-c g" . counsel-ghq))
+
 ;;; Programming Language
 ;;;; projectile
 (use-package projectile
@@ -812,24 +948,22 @@
   (projectile-completion-system 'ivy)
   (projectile-known-projects-file (my:join my:d:tmp "projectile-bookmarks.eld"))
   :config
-  (when (featurep 'counsel)
-    (use-package counsel-projectile
-      :ensure t
-      :bind
-      (:map projectile-mode-map
-            ("C-c p" . projectile-command-map)
-            ("C-c C-p" . projectile-command-map)))))
+  (use-package counsel-projectile
+    :ensure t
+    :if (featurep 'counsel)
+    :bind
+    (:map projectile-mode-map
+          ("C-c p" . projectile-command-map)
+          ("C-c C-p" . projectile-command-map))))
 
 ;;;; Neotree
 (use-package neotree
   :ensure t
-  :after projectile
   :bind (("<f8>" . neotree-toggle)
          :map neotree-mode-map
          ("a" . neotree-hidden-file-toggle)
          ("^" . neotree-select-up-node)
          ("<right>" . neotree-change-root))
-  :commands (neotree-show neotree-hide neotree-dir neotree-find)
   :custom
   (neo-theme 'icons)
   (neo-smart-open t)
@@ -860,15 +994,13 @@
   (lsp-print-io nil)
   (lsp-trace nil)
   (lsp-print-performance nil)
-
   (lsp-auto-guess-root t)
   (lsp-document-sync-method 'incremental)
   (lsp-response-timeout 5)
-
+  (lsp-idle-delay 0.5)
   (lsp-prefer-flymake nil)
   (lsp-enable-snippet t)
-  ;; (lsp-enable-indentation nil)
-  ;; (lsp-enable-completion-at-point nil)
+  (lsp-session-file (expand-file-name "lsp-session-v1" my:d:tmp))
   :config
   (setq lsp-restart 'auto-restart)
   (use-package company-capf
@@ -978,7 +1110,7 @@
    ("Capfile$" . enh-ruby-mode)
    ("Gemfile$" . enh-ruby-mode))
   :config
-  (my:add-to-list interpreter-mode-alist ("ruby" . enh-ruby-mode))
+  (add-to-list 'interpreter-mode-alist '("ruby" . enh-ruby-mode))
   (defun my:ruby-mode-hook-function ()
     (setq enh-ruby-deep-indent-paren nil)
     (setq enh-ruby-deep-indent-paren-style nil)
@@ -1081,7 +1213,7 @@
              ("C-c q" . quickrun))
   (use-package popwin
     :config
-    (my:add-to-list popwin:special-display-config ("*quickrun*"))))
+    (add-to-list 'popwin:special-display-config '("*quickrun*"))))
 
 ;;;; outline-(minor-)?mode
 (use-package outline
@@ -1107,7 +1239,7 @@
   (use-package cp5022x
     :ensure t
     :config
-    (my:add-to-list mime-charset-coding-system-alist (iso-2022-jp . cp50220)))
+    (add-to-list 'mime-charset-coding-system-alist '(iso-2022-jp . cp50220)))
   (setq wl-mime-charset 'utf-8)
   (setq mime-situation-examples-file (my:join my:d:tmp "mime-example"))
   (use-package mime-setup
@@ -1118,7 +1250,8 @@
     :quelpa (rail :fetcher github :repo uwabami/rail)
     :init
     (setq rail-emulate-genjis t))
-  (use-package elscreen-wl)
+  (use-package elscreen-wl
+    :if (featurep 'elscreen))
   ;; prefer text/plain than html
   (set-alist 'mime-view-type-subtype-score-alist '(text . html) 0)
   (setq wl-init-file (my:locate-home ".mua/wl-info.el")))
@@ -1126,8 +1259,7 @@
 ;;;; org-mode
 (use-package org
   :mode
-  (("\\.org$" . org-mode)
-   ("\\.howm$" . org-mode))
+  (("\\.org$" . org-mode))
   :bind (("C-c l" . org-store-link)
          ("C-c o" . org-capture)
          ("C-c a" . org-agenda)
@@ -1138,10 +1270,15 @@
   (setq org-directory (my:join my:d:nextcloud "org/"))
   :custom
   (org-latex-pdf-process '("latexmk %f"))
+  (org-export-in-background t)
+  (org-export-async-debug t)
   :config
   (use-package org-install)
   (use-package org-capture)
   (use-package org-protocol)
+  (use-package ox)
+  (use-package ox-latex)
+  (use-package ox-beamer)
   (setq org-capture-bookmark nil)
   (setq org-startup-truncated nil)
   (setq org-return-follows-link t)
@@ -1239,37 +1376,12 @@
 %FOLD[  ]{%T}
 %FILL[        ]{via: %f %r %R }")
   (setq twittering-retweet-format " RT @%s: %t"))
-
 ;;;; SSH
 ;; ssh-config-mode
 (use-package ssh-config-mode
   :ensure t
   :custom
   (ssh-config-mode-indent 4))
-;;;; VCS -- Git
-;; vc-mode
-(setq vc-follow-symlinks t)
-(setq vc-handled-backends nil)          ; no use vc-mode
-;; remove hook
-(remove-hook 'find-file-hook 'vc-find-file-hook)
-(remove-hook 'kill-buffer-hook 'vc-kill-buffer-hook)
-(use-package magit
-  :ensure t
-  :bind (("C-x g" . magit-status)))
-(use-package git-gutter
-  :ensure t
-  :hook (after-init . global-git-gutter-mode)
-  :custom
-  (git-gutter:handled-backends '(git hg)))
-(use-package gitconfig-mode
-  :ensure t
-  :defer t)
-(use-package gitignore-mode
-  :ensure t
-  :defer t)
-(use-package counsel-ghq
-  :quelpa (counsel-ghq :fetcher github :repo windymelt/counsel-ghq)
-  :bind ("C-c g" . counsel-ghq))
 ;;;; which-key
 (use-package which-key
   :ensure t
@@ -1350,6 +1462,10 @@
 (use-package rainbow-delimiters
   :ensure t
   :hook (prog-mode . rainbow-delimiters-mode))
+;;;; rainbow-mode
+(use-package rainbow-mode
+  :ensure t
+  :hook (prog-mode . rainbow-mode))
 ;;;; multi-term
 (use-package multi-term
   :ensure t
@@ -1358,6 +1474,7 @@
   (setq multi-term-program (executable-find "bash")))
 
 ;; Local Variables:
+;; byte-compile-warnings: (not cl-functions obsolete)
 ;; coding: utf-8-unix
 ;; mode: emacs-lisp
 ;; mode: outline-minor
