@@ -5,7 +5,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi@ai.cs.ehime-u.ac.jp>
 ;; Created: 2018-05-26
-;; Modified: 2020-08-19
+;; Modified: 2020-08-21
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -513,7 +513,7 @@ COMP is used instead of eq when COMP is given."
          ("C-x C-r" . counsel-recentf)
          ("M-y" . counsel-yank-pop)
          ("C-x b" . counsel-switch-buffer)
-         ("C-M-g" . counsel-ag))
+         ("M-g" . counsel-rg))
   :custom
   (counsel-yank-pop-separator "\n--------\n")
   (kill-ring-max 1000)
@@ -572,15 +572,11 @@ COMP is used instead of eq when COMP is given."
          ;;(emacs-lisp-mode . ,(lambda () (add-to-list 'company-backends 'company-elisp))))
   :bind (:map company-active-map
               ("C-n" . company-select-next)
-              ("j" . company-select-next)
               ("C-p" . company-select-previous)
-              ("k" . company-select-previous)
               ("<tab>" . company-complete-selection)
               :map company-search-map
               ("C-n" . company-select-next)
-              ("j" . company-select-next)
-              ("C-p" . company-select-previous)
-              ("k" . company-select-previous))
+              ("C-p" . company-select-previous))
    :custom
   (company-transformers '(company-sort-by-backend-importance))
   (company-idle-delay 0.01)
@@ -942,12 +938,12 @@ Call this on `flyspell-incorrect-hook'."
 (use-package projectile
   :ensure t
   :after counsel
-  :hook (after-init . projectile-mode)
   :custom
   (projectile-enable-caching t)
   (projectile-completion-system 'ivy)
   (projectile-known-projects-file (my:join my:d:tmp "projectile-bookmarks.eld"))
   :config
+  (my:enable-mode projectile-mode)
   (use-package counsel-projectile
     :ensure t
     :if (featurep 'counsel)
