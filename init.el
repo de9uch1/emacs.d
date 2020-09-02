@@ -5,7 +5,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi@ai.cs.ehime-u.ac.jp>
 ;; Created: 2018-05-26
-;; Modified: 2020-08-21
+;; Modified: 2020-09-02
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -178,8 +178,12 @@ COMP is used instead of eq when COMP is given."
   :ensure t
   :custom
   (doom-modeline-icon t)
+  (doom-modeline-project-detection 'projectile)
   :config
-  (my:enable-mode doom-modeline-mode))
+  (my:enable-mode doom-modeline-mode)
+  (doom-modeline-def-modeline 'main
+    '(bar workspace-name window-number modals matches buffer-info remote-host word-count parrot selection-info)
+    '(objed-state misc-info persp-name battery grip irc mu4e gnus github debug repl lsp minor-modes input-method indent-info major-mode process vcs checker)))
 ;; hide-mode-line
 (use-package hide-mode-line
   :ensure t
@@ -905,12 +909,7 @@ Call this on `flyspell-incorrect-hook'."
   (setq company-backends (mapcar #'company-mode/backend-with-yas company-backends)))
 
 ;;; VCS -- Git
-;; vc-mode
 (setq vc-follow-symlinks t)
-(setq vc-handled-backends nil)          ; no use vc-mode
-;; remove hook
-(remove-hook 'find-file-hook 'vc-find-file-hook)
-(remove-hook 'kill-buffer-hook 'vc-kill-buffer-hook)
 (use-package magit
   :ensure t
   :bind ("C-x g" . magit-status))
@@ -955,6 +954,7 @@ Call this on `flyspell-incorrect-hook'."
 ;;;; Neotree
 (use-package neotree
   :ensure t
+  :after projectile
   :bind (("<f8>" . neotree-toggle)
          :map neotree-mode-map
          ("a" . neotree-hidden-file-toggle)
@@ -963,7 +963,8 @@ Call this on `flyspell-incorrect-hook'."
   :custom
   (neo-theme 'icons)
   (neo-smart-open t)
-  (neo-keymap-style 'concise))
+  (neo-keymap-style 'concise)
+  (neo-vc-integration t))
 
 ;;;; flycheck
 (use-package flycheck
@@ -991,14 +992,17 @@ Call this on `flyspell-incorrect-hook'."
   (lsp-trace nil)
   (lsp-print-performance nil)
   (lsp-auto-guess-root t)
-  (lsp-document-sync-method 'incremental)
+  (lsp-enable-completion-at-point t)
   (lsp-response-timeout 5)
   (lsp-idle-delay 0.5)
   (lsp-prefer-flymake nil)
+  (lsp-prefer-capf t)
   (lsp-enable-snippet t)
   (lsp-session-file (expand-file-name "lsp-session-v1" my:d:tmp))
   :config
   (setq lsp-restart 'auto-restart)
+  (setq lsp-completion-provider :capf)
+  (setq lsp-document-sync-method lsp--sync-incremental)
   (use-package company-capf
     :after (company lsp-mode)
     :config
@@ -1275,6 +1279,8 @@ Call this on `flyspell-incorrect-hook'."
   (use-package ox)
   (use-package ox-latex)
   (use-package ox-beamer)
+  (use-package ox-gfm
+    :ensure t)
   (setq org-capture-bookmark nil)
   (setq org-startup-truncated nil)
   (setq org-return-follows-link t)
