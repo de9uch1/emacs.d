@@ -203,7 +203,6 @@ COMP is used instead of eq when COMP is given."
   :quelpa (icons-in-terminal :fetcher github :repo seagle0128/icons-in-terminal.el)
   :if (not window-system)
   :after all-the-icons
-  :no-require t
   :custom
   (icons-in-terminal-scale-factor 1.0)
   :config
@@ -214,7 +213,7 @@ COMP is used instead of eq when COMP is given."
   (defalias #'all-the-icons-insert-octicon #'icons-in-terminal-insert-octicon)
   (defalias #'all-the-icons-insert-wicon #'icons-in-terminal-insert-wicon)
 
-  ;; (defalias #'all-the-icons-icon-for-dir #'icons-in-terminal-icon-for-dir)
+  (defalias #'all-the-icons-icon-for-dir #'icons-in-terminal-icon-for-dir)
   (defalias #'all-the-icons-icon-for-dir-with-chevron #'icons-in-terminal-icon-for-dir)
   (defalias #'all-the-icons-icon-for-file #'icons-in-terminal-icon-for-file)
   (defalias #'all-the-icons-icon-for-mode #'icons-in-terminal-icon-for-mode)
@@ -240,7 +239,8 @@ COMP is used instead of eq when COMP is given."
   (defalias 'all-the-icons-scale-factor 'icons-in-terminal-scale-factor)
   (defalias 'all-the-icons-icon-alist 'icons-in-terminal-icon-alist)
   (defalias 'all-the-icons-dir-icon-alist 'icons-in-terminal-dir-icon-alist)
-  (defalias 'all-the-icons-weather-icon-alist 'icons-in-terminal-weather-icon-alist))
+  (defalias 'all-the-icons-weather-icon-alist 'icons-in-terminal-weather-icon-alist)
+  )
 ;; Fontset -- Cica: https://github.com/miiton/Cica
 (when window-system
   (set-fontset-font "fontset-standard" 'unicode (font-spec :family "Cica" :size 16))
@@ -465,7 +465,6 @@ COMP is used instead of eq when COMP is given."
 (use-package ivy
   :ensure t
   :diminish
-  :hook (after-init . ivy-mode)
   :custom
   (ivy-use-virtual-buffers t)
   (ivy-height 30)
@@ -475,16 +474,25 @@ COMP is used instead of eq when COMP is given."
   :config
   (setq ivy-re-builders-alist '((t . ivy--regex-ignore-order)))
   (setq enable-recursive-minibuffers t)
-  ;; all-the-icons-ivy
-  (use-package all-the-icons-ivy
-    :ensure t)
-  (use-package all-the-icons-ivy-rich
-    :ensure t
-    :hook (ivy-mode . all-the-icons-ivy-rich-mode))
+  (my:enable-mode ivy-mode)
   ;; ivy-rich
   (use-package ivy-rich
     :ensure t
-    :hook (ivy-mode . ivy-rich-mode))
+    :after ivy
+    :config
+    (my:enable-mode ivy-rich-mode))
+  ;; all-the-icons-ivy
+  (use-package all-the-icons-ivy
+    :ensure t
+    :disabled t
+    :after all-the-icons
+    :config
+    (all-the-icons-ivy-setup))
+  (use-package all-the-icons-ivy-rich
+    :ensure t
+    :after (all-the-icons ivy-rich)
+    :config
+    (all-the-icons-ivy-rich-mode))
   ;; ivy-posframe
   (use-package ivy-posframe
     :ensure t
