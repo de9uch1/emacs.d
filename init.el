@@ -1,11 +1,12 @@
-;;; init.el --- Emacs Initialization File -*- lexical-binding: t -*-
+;; -*- lexical-binding: t -*-
+;;; init.el --- Emacs Initialization File
 
 ;; Filename: init.el
 ;; Description: my emacs configuration
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi@ai.cs.ehime-u.ac.jp>
 ;; Created: 2018-05-26
-;; Modified: 2020-09-02
+;; Modified: 2020-09-11
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -36,7 +37,7 @@
 ;;; Startup
 ;;;; Tuning and Speed Up:
 (setq gc-cons-percentage 1.0
-      gc-cons-threshold (* 1024 1024 1024)
+      gc-cons-threshold most-positive-fixnum
       read-process-output-max (* 64 1024 1024))
 (add-hook
  'after-init-hook
@@ -65,24 +66,19 @@ COMP is used instead of eq when COMP is given."
    (if comp
        (funcall comp x y)
      (eq x y))))
-(defun my:join (a b)
-  "Python's os.path.join(A, B)."
-  (concat a
-          (when (my:ne (substring a -1) "/" 'string-equal) "/")
-          b))
-(defun my:path-exists? (path)
+(defmacro my:path-exists? (path)
   "Return PATH if PATH exists else nil."
-  (if (file-exists-p path)
-      path
+  `(if (file-exists-p ,path)
+      ,path
     nil))
-(defun my:locate-user-emacs-file (x)
+(defmacro my:locate-user-emacs-file (x)
   "Expand filename (locate-user-emacs-file X)."
-  (expand-file-name (locate-user-emacs-file x)))
+  `(expand-file-name (locate-user-emacs-file ,x)))
 ;; my:locate-home
 (defconst HOME (getenv "HOME"))
-(defun my:locate-home (x)
+(defmacro my:locate-home (x)
   "Concat and expand path X from HOME."
-  (expand-file-name (my:join HOME x)))
+  `(expand-file-name ,x ,HOME))
 ;; mode enable/disable
 (defmacro my:enable-mode (mode)
   "Enable MODE."
@@ -349,16 +345,16 @@ COMP is used instead of eq when COMP is given."
 ;; *.~ / .#* no back up
 (setq make-backup-files nil
       auto-save-default nil
-      auto-save-list-file-prefix (my:join my:d:tmp ".saves-"))
+      auto-save-list-file-prefix (expand-file-name my:d:tmp ".saves-"))
 ;; definition temporary files and shared files
-(setq url-configuration-directory (my:join my:d:tmp "url")
-      nsm-settings-file (my:join my:d:tmp "network-settings.data")
-      bookmark-default-file (my:join my:d:share "bookmarks"))
+(setq url-configuration-directory (expand-file-name "url" my:d:tmp)
+      nsm-settings-file (expand-file-name "network-settings.data" my:d:tmp)
+      bookmark-default-file (expand-file-name "bookmarks" my:d:share))
 ;; save minibuffer history
 (my:enable-mode savehist-mode)
 (setq message-log-max 10000)
 (setq history-length t
-      savehist-file (my:join my:d:tmp "history"))
+      savehist-file (expand-file-name "history" my:d:tmp))
 ;; yes or no -> y or n
 (fset 'yes-or-no-p 'y-or-n-p)
 ;; not add newline at end of buffer
@@ -374,7 +370,7 @@ COMP is used instead of eq when COMP is given."
 ;; Emacs Server
 (use-package server
   :init
-  (defvar server-socket-dir (my:join my:d:tmp "server"))
+  (defvar server-socket-dir (expand-file-name "server" my:d:tmp))
   :config
   (unless (server-running-p)
     (server-start)))
@@ -382,7 +378,7 @@ COMP is used instead of eq when COMP is given."
 (use-package tramp
   :config
   (setq tramp-default-method "ssh")
-  (setq tramp-persistency-file-name (my:join my:d:tmp "tramp")))
+  (setq tramp-persistency-file-name (expand-file-name "tramp" my:d:tmp)))
 ;; dired
 (use-package dired-aux
   :defer t
@@ -396,7 +392,7 @@ COMP is used instead of eq when COMP is given."
 ;; save last opened place
 (use-package saveplace
   :config
-  (setq save-place-file (my:join my:d:tmp "save-places"))
+  (setq save-place-file (expand-file-name "save-places" my:d:tmp))
   (my:enable-mode save-place-mode))
 ;; for same name buffer
 (use-package uniquify
@@ -438,10 +434,10 @@ COMP is used instead of eq when COMP is given."
                                              ("C-d" . delete-char)
                                              ("C-a" . eshell-bol))))
   :config
-  (setq my:d:eshell (my:join my:d:tmp "eshell"))
+  (setq my:d:eshell (expand-file-name "eshell" my:d:tmp))
   ;; lastdir & history
-  (setq eshell-last-dir-ring-file-name (my:join my:d:eshell (concat "lastdir." (system-name))))
-  (setq eshell-history-file-name (my:join my:d:eshell (concat "history." (system-name))))
+  (setq eshell-last-dir-ring-file-name (expand-file-name (concat "lastdir." (system-name)) my:d:eshell))
+  (setq eshell-history-file-name (expand-file-name (concat "history." (system-name)) my:d:eshell))
   ;; misc
   (setq eshell-cmpl-ignore-case t)                 ; 補完時に大文字小文字を区別しない
   (setq eshell-ask-to-save-history (quote always)) ; 確認なしでヒストリ保存
@@ -460,7 +456,7 @@ COMP is used instead of eq when COMP is given."
   :ensure t
   :custom
   (prescient-aggressive-file-save t)
-  (prescient-save-file (my:join my:d:tmp "prescient-save.el"))
+  (prescient-save-file (expand-file-name "prescient-save.el" my:d:tmp))
   (prescient-history-length 5000)
   :config
   (my:enable-mode prescient-persist-mode))
@@ -567,7 +563,7 @@ COMP is used instead of eq when COMP is given."
   :ensure t
   :custom
   (smex-history-length 32)
-  (smex-save-file (my:join my:d:tmp "smex-items")))
+  (smex-save-file (expand-file-name "smex-items" my:d:tmp)))
 ;;;; company
 (use-package company
   :ensure t
@@ -743,23 +739,23 @@ COMP is used instead of eq when COMP is given."
   :config
   (migemo-init))
 ;;;; IME -- ddskk
-(defvar my:d:skk (my:join my:d:nextcloud "app/SKK"))
-(setq skk-large-jisyo (my:join my:d:skk "SKK-JISYO.L+emoji.utf8"))
+(defvar my:d:skk (expand-file-name "app/SKK" my:d:nextcloud))
+(setq skk-large-jisyo (expand-file-name "SKK-JISYO.L+emoji.utf8" my:d:skk))
 (use-package skk
   :ensure ddskk
   :bind (([hiragana-katakana] . skk-mode)
          ("C-\\" . skk-mode))
   :init
   (setq skk-user-directory my:d:skk
-        skk-jisyo (my:join my:d:skk "jisyo.utf8")
-        skk-backup-jisyo (my:join my:d:tmp "SKK/jisyo.bak")
-        skk-study-backup-file (my:join my:d:tmp "SKK/study.bak"))
+        skk-jisyo (expand-file-name "jisyo.utf8" my:d:skk)
+        skk-backup-jisyo (expand-file-name "SKK/jisyo.bak" my:d:tmp)
+        skk-study-backup-file (expand-file-name "SKK/study.bak" my:d:tmp))
   (setq skk-jisyo-code 'utf-8)
   (setq default-input-method "japanese-skk")
   :config
   (setq skk-extra-jisyo-file-list
         (list
-         (my:join my:d:skk "SKK-JISYO.JIS3_4")))
+         (expand-file-name "SKK-JISYO.JIS3_4" my:d:skk)))
   ;; (skk-toggle-katakana 'jisx0201-kana)
   (setq default-input-method
         "japanese-skk" ; (skk-mode 1)
@@ -836,7 +832,7 @@ Call this on `flyspell-incorrect-hook'."
 ;;;; eww
 (use-package eww
   :preface
-  (setq my:d:eww (my:join my:d:tmp "eww"))
+  (setq my:d:eww (expand-file-name "eww" my:d:tmp))
   :custom
   (eww-bookmarks-directory my:d:eww)
   (eww-history-limit 9999)
@@ -849,18 +845,18 @@ Call this on `flyspell-incorrect-hook'."
   :bind (:map w3m-mode-map
               ("S" . w3m-db-history))
   :config
-  (defvar my:d:w3m:config (my:join my:d:nextcloud "app/emacs-w3m"))
-  (defvar my:d:w3m:tmp (my:join my:d:tmp "w3m"))
+  (defvar my:d:w3m:config (expand-file-name "app/emacs-w3m" my:d:nextcloud))
+  (defvar my:d:w3m:tmp (expand-file-name "w3m" my:d:tmp))
   ;; user's files
   (setq w3m-init-file (or load-file-name (buffer-file-name))
         w3m-default-save-directory (my:locate-home "Downloads")
-        w3m-bookmark-file (my:join my:d:w3m:config "bookmark")
-        w3m-arrived-file (my:join my:d:w3m:tmp "history")
-        w3m-cookie-file (my:join my:d:w3m:tmp "cookie")
-        w3m-form-textarea-directory (my:join my:d:w3m:tmp "formhist")
-        w3m-session-file (my:join my:d:w3m:tmp "sessions")
-        w3m-icon-directory (my:join my:d:w3m:tmp "icon")
-        w3m-favicon-cache-file (my:join my:d:w3m:tmp "favicon"))
+        w3m-bookmark-file (expand-file-name "bookmark" my:d:w3m:config)
+        w3m-arrived-file (expand-file-name "history" my:d:w3m:tmp)
+        w3m-cookie-file (expand-file-name "cookie" my:d:w3m:tmp)
+        w3m-form-textarea-directory (expand-file-name "formhist" my:d:w3m:tmp)
+        w3m-session-file (expand-file-name "sessions" my:d:w3m:tmp)
+        w3m-icon-directory (expand-file-name "icon" my:d:w3m:tmp)
+        w3m-favicon-cache-file (expand-file-name "favicon" my:d:w3m:tmp))
   ;; text encoding
   (setq w3m-default-coding-system 'utf-8
         w3m-bookmark-file-coding-system 'utf-8
@@ -883,7 +879,7 @@ Call this on `flyspell-incorrect-hook'."
 (use-package undohist
   :ensure t
   :config
-  (setq undohist-directory (my:join my:d:tmp "undohist"))
+  (setq undohist-directory (expand-file-name "undohist" my:d:tmp))
   (undohist-initialize))
 ;; undo-tree
 (use-package undo-tree
@@ -899,7 +895,7 @@ Call this on `flyspell-incorrect-hook'."
   :config
   (use-package yasnippet-snippets
     :ensure t)
-  (setq yas-snippet-dirs (list (my:join my:d:share "snippets") yasnippet-snippets-dir))
+  (setq yas-snippet-dirs (list (expand-file-name "snippets" my:d:share) yasnippet-snippets-dir))
   (defvar company-mode/enable-yas t)
   (defun company-mode/backend-with-yas (backend)
     (if (or (not company-mode/enable-yas) (and (listp backend) (member 'company-yasnippet backend)))
@@ -940,7 +936,7 @@ Call this on `flyspell-incorrect-hook'."
   :custom
   (projectile-enable-caching t)
   (projectile-completion-system 'ivy)
-  (projectile-known-projects-file (my:join my:d:tmp "projectile-bookmarks.eld"))
+  (projectile-known-projects-file (expand-file-name "projectile-bookmarks.eld" my:d:tmp))
   :config
   (my:enable-mode projectile-mode)
   (use-package counsel-projectile
@@ -1057,8 +1053,17 @@ Call this on `flyspell-incorrect-hook'."
   (setq YaTeX-kanji-code 4)
   (setq tex-pdfview-command (executable-find "okular"))
   (setq electric-indent-mode nil)
-  (setq reftex-use-external-file-finders t)
-  (setq reftex-default-bibliography (list (my:join my:d:nextcloud "lab/tex/nlp.bib"))))
+  (setq reftex-use-external-file-finders t))
+;; PDF
+(use-package pdf-tools
+  :ensure t
+  :mode
+  (("\\.pdf$" . pdf-view-mode))
+  :custom
+  (pdf-view-resize-factor 1.1)
+  :config
+  (add-hook 'pdf-view-mode-hook (lambda () (my:disable-mode display-line-numbers-mode)))
+  (bind-keys :map pdf-view-mode-map ("C-s" . isearch-forward)))
 
 ;;;; Lisp -- Common Lisp, Scheme
 ;;;;; Common Lisp
@@ -1069,7 +1074,7 @@ Call this on `flyspell-incorrect-hook'."
   :load-path quicklisp-directory
   :config
   (setq inferior-lisp-program "clisp")
-  (load (my:join quicklisp-directory "slime-helper.el")))
+  (load (expand-file-name "slime-helper.el" quicklisp-directory)))
 ;;;;; Scheme
 (setq scheme-program-name "gosh -i")
 (defun scheme-other-window ()
@@ -1241,7 +1246,7 @@ Call this on `flyspell-incorrect-hook'."
     :config
     (add-to-list 'mime-charset-coding-system-alist '(iso-2022-jp . cp50220)))
   (setq wl-mime-charset 'utf-8)
-  (setq mime-situation-examples-file (my:join my:d:tmp "mime-example"))
+  (setq mime-situation-examples-file (expand-file-name "mime-example" my:d:tmp))
   (use-package mime-setup
     :preface
     (setq mime-view-text/html-previewer 'shr
@@ -1267,7 +1272,7 @@ Call this on `flyspell-incorrect-hook'."
          ("C-c t" . org-todo))
   :hook (org-mode . turn-on-font-lock)
   :init
-  (setq org-directory (my:join my:d:nextcloud "org/"))
+  (setq org-directory (expand-file-name "org/" my:d:nextcloud))
   :custom
   (org-latex-pdf-process '("latexmk %f"))
   (org-export-in-background t)
@@ -1285,7 +1290,7 @@ Call this on `flyspell-incorrect-hook'."
   (setq org-startup-truncated nil)
   (setq org-return-follows-link t)
   ;;(org-remember-insinuate)
-  (setq org-default-notes-file (my:join org-directory "agenda.org"))
+  (setq org-default-notes-file (expand-file-name "agenda.org" org-directory))
   (setq org-capture-templates
         '(("t" "Todo" entry (file "todo.org")
            "* TODO %?%i\n  %T"
@@ -1296,7 +1301,7 @@ Call this on `flyspell-incorrect-hook'."
           ("b" "bookmarks" entry (file+headline "memo.org" "Bookmarks")
            "* %:description\n    %?\n    %:link\n    %T"
            :kill-buffer t)
-          ("s" "Snippets" entry (file (my:join org-directory "snippets.org"))
+          ("s" "Snippets" entry (file (expand-file-name "snippets.org" org-directory))
            "* %T\n#+begin_src \n%i%?\n#+end_src"
            :kill-buffer t)
           ("d" "diary" entry (file+datetree "diary.org")
@@ -1314,14 +1319,14 @@ Call this on `flyspell-incorrect-hook'."
   (setq org-tag-alist '(("daily" . ?d)))
   (setq org-agenda-files nil)
   (dolist (file '("todo.org" "memo.org" "diary.org" "journal.org" "schedule.org" "research.org"))
-    (add-to-list 'org-agenda-files (my:join org-directory file)))
+    (add-to-list 'org-agenda-files (expand-file-name file org-directory)))
   (setq org-export-with-toc nil)
   (setq org-duration-format (quote h:mm))
   ;; org-gcal
   (use-package request
     :ensure t
     :init
-    (setq request-storage-directory (my:join my:d:tmp "request"))
+    (setq request-storage-directory (expand-file-name "request" my:d:tmp))
     (unless (file-directory-p request-storage-directory)
       (make-directory request-storage-directory)))
   (use-package org-gcal
@@ -1329,7 +1334,7 @@ Call this on `flyspell-incorrect-hook'."
     :if (file-directory-p org-directory)
     :commands (org-gcal-fetch org-gcal-sync)
     :init
-    (setq org-gcal-dir (my:join my:d:tmp "org-gcal"))
+    (setq org-gcal-dir (expand-file-name "org-gcal" my:d:tmp))
     (unless org-gcal-dir
       (make-directory org-gcal-dir))
     (setq org-gcal-token-file (expand-file-name ".org-gcal-token" org-gcal-dir))
@@ -1339,8 +1344,8 @@ Call this on `flyspell-incorrect-hook'."
     (setq org-gcal-up-days    180) ;; 未来 6 month
     (setq org-gcal-auto-archive nil)
     :config
-    (load (my:join my:d:nextcloud "app/org-gcal/token"))
-    (setq org-gcal-file-alist `(("de9uch1@gmail.com" . ,(my:join org-directory "schedule.org"))))))
+    (load (expand-file-name "app/org-gcal/token" my:d:nextcloud))
+    (setq org-gcal-file-alist `(("de9uch1@gmail.com" . ,(expand-file-name "schedule.org" org-directory))))))
 
 ;;; Misc Packages
 ;;;; twittering-mode
@@ -1353,7 +1358,7 @@ Call this on `flyspell-incorrect-hook'."
   (setq twittering-use-master-password t)
   (setq twittering-private-info-file (my:locate-home ".gnupg/twittering-mode.gpg"))
   (setq twittering-icon-storage-limit t)
-  (setq twittering-icon-storage-file (my:join my:d:tmp "twmode-icon"))
+  (setq twittering-icon-storage-file (expand-file-name "twmode-icon" my:d:tmp))
   (setq twittering-connection-type-order '(wget curl urllib-http native urllib-https))
   ;; ふぁぼるとき確認しない
   (defun my:twittering-favorite (&optional remove)
@@ -1397,7 +1402,7 @@ Call this on `flyspell-incorrect-hook'."
 ;;;; recentf
 (use-package recentf
   :custom
-  (recentf-save-file (my:join my:d:tmp "recentf"))
+  (recentf-save-file (expand-file-name "recentf" my:d:tmp))
   (recentf-max-menu-items 100)
   (recentf-max-saved-items 5000)
   (recentf-auto-cleanup 100)
@@ -1452,7 +1457,7 @@ Call this on `flyspell-incorrect-hook'."
          ("<C-f10>" . mc/mark-previous-like-this)
          ("C-c C-<" . mc/mark-all-like-this))
   :config
-  (setq mc/list-file (my:join my:d:tmp "mc-lists.el")))
+  (setq mc/list-file (expand-file-name "mc-lists.el" my:d:tmp)))
 ;;;; smartparens
 (use-package smartparens
   :ensure t
