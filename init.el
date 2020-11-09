@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi@ai.cs.ehime-u.ac.jp>
 ;; Created: 2018-05-26
-;; Modified: 2020-09-11
+;; Modified: 2020-10-12
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -213,7 +213,7 @@ COMP is used instead of eq when COMP is given."
   (defalias #'all-the-icons-insert-octicon #'icons-in-terminal-insert-octicon)
   (defalias #'all-the-icons-insert-wicon #'icons-in-terminal-insert-wicon)
 
-  (defalias #'all-the-icons-icon-for-dir #'icons-in-terminal-icon-for-dir)
+  ;; (defalias #'all-the-icons-icon-for-dir #'icons-in-terminal-icon-for-dir)
   (defalias #'all-the-icons-icon-for-dir-with-chevron #'icons-in-terminal-icon-for-dir)
   (defalias #'all-the-icons-icon-for-file #'icons-in-terminal-icon-for-file)
   (defalias #'all-the-icons-icon-for-mode #'icons-in-terminal-icon-for-mode)
@@ -1213,7 +1213,9 @@ Call this on `flyspell-incorrect-hook'."
   (setq py-outline-minor-mode-p nil)
   (setq py-current-defun-show nil)
   (setq py-jump-on-exception nil)
-  (setq py-current-defun-delay 1000))
+  (setq py-current-defun-delay 1000)
+  (setq lsp-pyls-plugins-autopep8-enabled nil)
+  (setq lsp-pyls-plugins-yapf-enabled t))
 ;; quickrun
 (use-package quickrun
   :ensure t
