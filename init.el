@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi@ai.cs.ehime-u.ac.jp>
 ;; Created: 2018-05-26
-;; Modified: 2020-10-12
+;; Modified: 2020-12-23
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -43,7 +43,7 @@
  'after-init-hook
  `(lambda ()
     (setq gc-cons-threshold (* 128 1024 1024)
-          gc-cons-percentage 0.5
+          gc-cons-percentage 0.6
           read-process-output-max (* 16 1024 1024))
     (garbage-collect)) t)
 
@@ -1206,14 +1206,16 @@ Call this on `flyspell-incorrect-hook'."
 
 ;;;; python
 (use-package python-mode
-  ;; :ensure-system-package (pip
-  ;;                         (python-language-server . "pip install --user python-language-server[all]"))
   :ensure t
   :config
   (setq py-outline-minor-mode-p nil)
   (setq py-current-defun-show nil)
   (setq py-jump-on-exception nil)
   (setq py-current-defun-delay 1000)
+  (use-package lsp-python-ms
+    :ensure t
+    :init (setq lsp-python-ms-auto-install-server t)
+    :hook (python-mode . (lambda () (require 'lsp-python-ms) (lsp))))
   (setq lsp-pyls-plugins-autopep8-enabled nil)
   (setq lsp-pyls-plugins-yapf-enabled t))
 ;; quickrun
