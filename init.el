@@ -297,7 +297,7 @@ COMP is used instead of eq when COMP is given."
 ;;;; Window Size
 (when window-system
   (pcase (system-name)
-    ("goedel" (my:add-to-list default-frame-alist (height . 56) (width . 117))))
+    (_ (my:add-to-list default-frame-alist (height . 56) (width . 117))))
   (setq initial-frame-alist default-frame-alist))
 
 ;;; Basic Configurations
