@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi@ai.cs.ehime-u.ac.jp>
 ;; Created: 2018-05-26
-;; Modified: 2020-12-23
+;; Modified: 2021-02-03
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -35,17 +35,35 @@
 ;;; Code:
 
 ;;; Startup
+;;;; Profiler
+;; (require 'profiler)
+;; (profiler-start 'cpu)
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (message "init time: %.3f sec"
+                     (float-time (time-subtract after-init-time before-init-time)))))
 ;;;; Tuning and Speed Up:
-(setq gc-cons-percentage 1.0
-      gc-cons-threshold most-positive-fixnum
-      read-process-output-max (* 64 1024 1024))
-(add-hook
- 'after-init-hook
- `(lambda ()
-    (setq gc-cons-threshold (* 128 1024 1024)
-          gc-cons-percentage 0.6
-          read-process-output-max (* 16 1024 1024))
-    (garbage-collect)) t)
+(defconst early-init-compat (version<= "27.1" emacs-version))
+(unless early-init-compat
+  ;; Disable magic file name at initialize
+  (defconst my:saved-file-name-handler-alist file-name-handler-alist)
+  (setq file-name-handler-alist nil)
+  (add-hook
+   'emacs-startup-hook
+   (lambda ()
+     (setq file-name-handler-alist my:saved-file-name-handler-alist)))
+  ;; Avoid garbage collection in initialize
+  (setq gc-cons-percentage 1.0
+        gc-cons-threshold most-positive-fixnum
+        read-process-output-max (* 64 1024 1024))
+  (add-hook
+   'after-init-hook
+   `(lambda ()
+      (setq gc-cons-threshold (* 128 1024 1024)
+            gc-cons-percentage 0.6
+            read-process-output-max (* 16 1024 1024))) t)
+  (run-with-idle-timer 60.0 t #'garbage-collect))
+
 
 ;;;; cl-lib -- load Common Lisp library:
 (eval-when-compile (require 'cl-lib nil t))
@@ -54,9 +72,10 @@
 ;;; System Local
 (defvar my:distrib-id nil)
 (defvar my:gentoo-p nil)
-(when (file-exists-p "/etc/gentoo-release")
-  (setq my:distrib-id "gentoo")
-  (setq my:gentoo-p t))
+(eval-when-compile
+  (when (file-exists-p "/etc/gentoo-release")
+    (setq my:distrib-id "gentoo")
+    (setq my:gentoo-p t)))
 
 ;;; My Functions and Macros -- prefix "my:"
 (defun my:ne (x y &optional comp)
@@ -86,10 +105,7 @@ COMP is used instead of eq when COMP is given."
 (defmacro my:disable-mode (mode)
   "Disable MODE."
   `(,mode 0))
-;; add-to-list, add-function-to-hook
-(cl-defmacro my:add-to-list (list &optional &body elements)
-  `(cl-loop for e in ',elements
-            do (add-to-list ',list e)))
+;; add-function-to-hook
 (cl-defmacro my:add-function-to-hook (function &optional &body hooks)
   (cl-loop for target-hook in hooks
            do (add-hook (intern (concat (symbol-name target-hook) "-hook"))
@@ -115,18 +131,17 @@ COMP is used instead of eq when COMP is given."
 (defconst my:d:share (my:locate-user-emacs-file "share"))
 ;; Nextcloud
 (defconst my:d:nextcloud
-  (let ((d '("Nextcloud" "nextcloud")))
-    (or (cl-find-if
-         'file-exists-p
-         (mapcar (lambda (x) (my:locate-home x)) d))
+  (let ((d (my:locate-home "Nextcloud")))
+    (if (file-exists-p d)
+        d
         user-emacs-directory)))
 
 ;;; Package Management
 ;;;; package.el
 (require 'package nil t)
-(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
+(custom-set-variables '(package-archives '(("melpa" . "https://melpa.org/packages/"))))
 (package-initialize)
-(when (not (package-installed-p 'use-package))
+(unless (package-installed-p 'use-package)
   (package-refresh-contents)
   (package-install 'use-package))
 ;;;; use-package.el
@@ -154,7 +169,7 @@ COMP is used instead of eq when COMP is given."
 
 ;;; Custom
 (setq custom-file (my:locate-user-emacs-file "custom.el"))
-(load custom-file t)
+;; (load custom-file t)
 
 ;;; Theme
 ;;;; Color Theme
@@ -255,16 +270,24 @@ COMP is used instead of eq when COMP is given."
     (set-fontset-font "fontset-standard" 'unicode (font-spec :family (all-the-icons-octicon-family)) nil 'append)
     (set-fontset-font "fontset-standard" 'unicode (font-spec :family (all-the-icons-wicon-family)) nil 'append))
   (set-face-font 'default "fontset-standard")
-  (add-to-list 'default-frame-alist '(font . "fontset-standard"))
+  (push '(font . "fontset-standard") default-frame-alist)
   (setq initial-frame-alist default-frame-alist))
 ;;;; Misc.
-;; disable menu-bar, tool-bar, scroll-bar
-(my:disable-mode menu-bar-mode)
-(when window-system
+(unless early-init-compat
+  ;; disable menu-bar, tool-bar, scroll-bar
+  (my:disable-mode menu-bar-mode)
   (my:disable-mode tool-bar-mode)
-  (set-scroll-bar-mode 'nil))
-;; cursor
-(add-to-list 'default-frame-alist '(cursor-type . bar))
+  (set-scroll-bar-mode nil)
+  ;; cursor
+  (push '(cursor-type . bar) default-frame-alist)
+  ;; No startup screen
+  (setq inhibit-startup-screen t)
+  ;; window size
+  (when window-system
+    (pcase (system-name)
+      (_ (progn (push '(height . 56) default-frame-alist)
+                (push '(width . 117) default-frame-alist))))
+    (setq initial-frame-alist default-frame-alist)))
 ;; truncate lines
 (setq-default truncate-lines t)
 (my:add-function-to-hook (lambda () (setq-local truncate-lines nil)) org-mode)
@@ -294,11 +317,6 @@ COMP is used instead of eq when COMP is given."
   (show-paren-style 'mixed)
   (show-paren-when-point-inside-paren t)
   (show-paren-when-point-in-periphery t))
-;;;; Window Size
-(when window-system
-  (pcase (system-name)
-    (_ (my:add-to-list default-frame-alist (height . 56) (width . 117))))
-  (setq initial-frame-alist default-frame-alist))
 
 ;;; Basic Configurations
 ;;;; Language, Locale and Coding System
@@ -322,8 +340,6 @@ COMP is used instead of eq when COMP is given."
   :ensure t
   :config
   (exec-path-from-shell-initialize))
-;; No startup screen
-(setq inhibit-startup-screen t)
 ;; Bell
 ;; Alternative flash the screen
 (setq visible-bell t)
@@ -407,12 +423,11 @@ COMP is used instead of eq when COMP is given."
   :ensure t
   :hook (after-init . popwin-mode)
   :config
-  (my:add-to-list popwin:special-display-config
-                  ("*Compile-Log*")
-                  ("*Buffer List*")
-                  ("*Warnings*")
-                  ("*system-packages*")
-                  ("*Async Shell Command*")))
+  (push '("*Compile-Log*") popwin:special-display-config)
+  (push '("*Buffer List*") popwin:special-display-config)
+  (push '("*Warnings*") popwin:special-display-config)
+  (push '("*system-packages*") popwin:special-display-config)
+  (push '("*Async Shell Command*") popwin:special-display-config))
 ;; move window
 (use-package windmove
   :bind (("C-c <left>" . windmove-left)
@@ -1084,19 +1099,20 @@ Call this on `flyspell-incorrect-hook'."
   (setq inferior-lisp-program "clisp")
   (load (expand-file-name "slime-helper.el" quicklisp-directory)))
 ;;;;; Scheme
-(setq scheme-program-name "gosh -i")
-(defun scheme-other-window ()
-  "Run Gauche on other window"
-  (interactive)
-  (split-window-horizontally (/ (frame-width) 2))
-  (let ((buf-name (buffer-name (current-buffer))))
-    (scheme-mode)
-    (switch-to-buffer-other-window
-     (get-buffer-create "*scheme*"))
-    (run-scheme scheme-program-name)
-    (switch-to-buffer-other-window
-     (get-buffer-create buf-name))))
-(bind-key "C-c S" 'scheme-other-window)
+(when (executable-find "gosh")
+  (setq scheme-program-name "gosh -i")
+  (defun scheme-other-window ()
+    "Run Gauche on other window"
+    (interactive)
+    (split-window-horizontally (/ (frame-width) 2))
+    (let ((buf-name (buffer-name (current-buffer))))
+      (scheme-mode)
+      (switch-to-buffer-other-window
+       (get-buffer-create "*scheme*"))
+      (run-scheme scheme-program-name)
+      (switch-to-buffer-other-window
+       (get-buffer-create buf-name))))
+  (bind-key "C-c S" 'scheme-other-window))
 
 ;;;; Web
 (use-package emmet-mode
@@ -1114,6 +1130,7 @@ Call this on `flyspell-incorrect-hook'."
 ;; enh-ruby-mode
 (use-package enh-ruby-mode
   :ensure t
+  :if (executable-find "ruby")
   :mode
   (("\\.rb$" . enh-ruby-mode)
    ("\\.rake$" . enh-ruby-mode)
@@ -1185,24 +1202,6 @@ Call this on `flyspell-incorrect-hook'."
 (use-package inf-ruby
   :defer t
   :hook (enh-ruby-mode . inf-ruby-minor-mode))
-;; rcodetools
-(use-package rcodetools
-  :ensure-system-package (rcodetools . "gem install rcodetools")
-  ;; cp rcodetools.el <PATH>
-  :bind (:map enh-ruby-mode-map
-              ("C-M-i" . rct-complete-symbol)
-              ("C-c C-t" . ruby-toggle-buffer)
-              ("C-c C-d" . xmp)
-              ("C-c C-f" . rct-ri))
-  :config
-  (setq rct-find-tag-if-available nil)
-  (defun make-ruby-scratch-buffer ()
-    (with-current-buffer (get-buffer-create "*ruby scratch*")
-      (enh-ruby-mode)
-      (current-buffer)))
-  (defun ruby-scratch ()
-    (interactive)
-    (pop-to-buffer (make-ruby-scratch-buffer))))
 
 ;;;; python
 (use-package python-mode
@@ -1230,7 +1229,7 @@ Call this on `flyspell-incorrect-hook'."
              ("C-c q" . quickrun))
   (use-package popwin
     :config
-    (add-to-list 'popwin:special-display-config '("*quickrun*"))))
+    (push '("*quickrun*") popwin:special-display-config)))
 
 ;;;; outline-(minor-)?mode
 (use-package outline
@@ -1331,7 +1330,7 @@ Call this on `flyspell-incorrect-hook'."
   (setq org-tag-alist '(("daily" . ?d)))
   (setq org-agenda-files nil)
   (dolist (file '("todo.org" "memo.org" "diary.org" "journal.org" "schedule.org" "research.org"))
-    (add-to-list 'org-agenda-files (expand-file-name file org-directory)))
+    (push (expand-file-name file org-directory) org-agenda-files))
   (setq org-export-with-toc nil)
   (setq org-duration-format (quote h:mm))
   ;; org-gcal
@@ -1491,6 +1490,10 @@ Call this on `flyspell-incorrect-hook'."
   :defer t
   :config
   (setq multi-term-program (executable-find "bash")))
+
+;;; Profiler
+;; (profiler-report)
+;; (profiler-stop)
 
 ;; Local Variables:
 ;; byte-compile-warnings: (not cl-functions obsolete)
