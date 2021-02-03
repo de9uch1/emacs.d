@@ -214,47 +214,47 @@ COMP is used instead of eq when COMP is given."
     :ensure t
     :hook (after-init . all-the-icons-ibuffer-mode)))
 ;; icons-in-terminal.el -- for non-GUI
-(use-package icons-in-terminal
-  :quelpa (icons-in-terminal :fetcher github :repo seagle0128/icons-in-terminal.el)
+(use-package all-the-icons-in-terminal
+  :quelpa (all-the-icons-in-terminal :fetcher github :repo uwabami/isfit-plus :files (:defaults "data"))
   :if (not window-system)
   :after all-the-icons
-  :custom
-  (icons-in-terminal-scale-factor 1.0)
-  :config
-  (defalias #'all-the-icons-insert #'icons-in-terminal-insert)
-  (defalias #'all-the-icons-insert-faicon #'icons-in-terminal-insert-faicon)
-  (defalias #'all-the-icons-insert-fileicon #'icons-in-terminal-insert-fileicon)
-  (defalias #'all-the-icons-insert-material #'icons-in-terminal-insert-material)
-  (defalias #'all-the-icons-insert-octicon #'icons-in-terminal-insert-octicon)
-  (defalias #'all-the-icons-insert-wicon #'icons-in-terminal-insert-wicon)
+  ;; :custom
+  ;; (icons-in-terminal-scale-factor 1.0)
+  ;; :config
+  ;; (defalias #'all-the-icons-insert #'icons-in-terminal-insert)
+  ;; (defalias #'all-the-icons-insert-faicon #'icons-in-terminal-insert-faicon)
+  ;; (defalias #'all-the-icons-insert-fileicon #'icons-in-terminal-insert-fileicon)
+  ;; (defalias #'all-the-icons-insert-material #'icons-in-terminal-insert-material)
+  ;; (defalias #'all-the-icons-insert-octicon #'icons-in-terminal-insert-octicon)
+  ;; (defalias #'all-the-icons-insert-wicon #'icons-in-terminal-insert-wicon)
 
-  ;; (defalias #'all-the-icons-icon-for-dir #'icons-in-terminal-icon-for-dir)
-  (defalias #'all-the-icons-icon-for-dir-with-chevron #'icons-in-terminal-icon-for-dir)
-  (defalias #'all-the-icons-icon-for-file #'icons-in-terminal-icon-for-file)
-  (defalias #'all-the-icons-icon-for-mode #'icons-in-terminal-icon-for-mode)
-  (defalias #'all-the-icons-icon-for-url #'icons-in-terminal-icon-for-url)
+  ;; ;; (defalias #'all-the-icons-icon-for-dir #'icons-in-terminal-icon-for-dir)
+  ;; (defalias #'all-the-icons-icon-for-dir-with-chevron #'icons-in-terminal-icon-for-dir)
+  ;; (defalias #'all-the-icons-icon-for-file #'icons-in-terminal-icon-for-file)
+  ;; (defalias #'all-the-icons-icon-for-mode #'icons-in-terminal-icon-for-mode)
+  ;; (defalias #'all-the-icons-icon-for-url #'icons-in-terminal-icon-for-url)
 
-  (defalias #'all-the-icons-icon-family #'icons-in-terminal-icon-family)
-  (defalias #'all-the-icons-icon-family-for-buffer #'icons-in-terminal-icon-family-for-buffer)
-  (defalias #'all-the-icons-icon-family-for-file #'icons-in-terminal-icon-family-for-file)
-  (defalias #'all-the-icons-icon-family-for-mode #'icons-in-terminal-icon-family-for-mode)
-  (defalias #'all-the-icons-icon-for-buffer #'icons-in-terminal-icon-for-buffer)
+  ;; (defalias #'all-the-icons-icon-family #'icons-in-terminal-icon-family)
+  ;; (defalias #'all-the-icons-icon-family-for-buffer #'icons-in-terminal-icon-family-for-buffer)
+  ;; (defalias #'all-the-icons-icon-family-for-file #'icons-in-terminal-icon-family-for-file)
+  ;; (defalias #'all-the-icons-icon-family-for-mode #'icons-in-terminal-icon-family-for-mode)
+  ;; (defalias #'all-the-icons-icon-for-buffer #'icons-in-terminal-icon-for-buffer)
 
-  (defalias #'all-the-icons-faicon #'icons-in-terminal-faicon)
-  (defalias #'all-the-icons-octicon #'icons-in-terminal-octicon)
-  (defalias #'all-the-icons-fileicon #'icons-in-terminal-fileicon)
-  (defalias #'all-the-icons-material #'icons-in-terminal-material)
-  (defalias #'all-the-icons-wicon #'icons-in-terminal-wicon)
+  ;; (defalias #'all-the-icons-faicon #'icons-in-terminal-faicon)
+  ;; (defalias #'all-the-icons-octicon #'icons-in-terminal-octicon)
+  ;; (defalias #'all-the-icons-fileicon #'icons-in-terminal-fileicon)
+  ;; (defalias #'all-the-icons-material #'icons-in-terminal-material)
+  ;; (defalias #'all-the-icons-wicon #'icons-in-terminal-wicon)
 
-  (defalias 'icons-in-terminal-dir-icon-alist 'icons-in-terminal-dir-icon-spec)
-  (defalias 'icons-in-terminal-weather-icon-alist 'icons-in-terminal-weather-icon-spec)
+  ;; (defalias 'icons-in-terminal-dir-icon-alist 'icons-in-terminal-dir-icon-spec)
+  ;; (defalias 'icons-in-terminal-weather-icon-alist 'icons-in-terminal-weather-icon-spec)
 
-  (defalias 'all-the-icons-default-adjust 'icons-in-terminal-default-adjust)
-  (defalias 'all-the-icons-color-icons 'icons-in-terminal-color-icons)
-  (defalias 'all-the-icons-scale-factor 'icons-in-terminal-scale-factor)
-  (defalias 'all-the-icons-icon-alist 'icons-in-terminal-icon-alist)
-  (defalias 'all-the-icons-dir-icon-alist 'icons-in-terminal-dir-icon-alist)
-  (defalias 'all-the-icons-weather-icon-alist 'icons-in-terminal-weather-icon-alist)
+  ;; (defalias 'all-the-icons-default-adjust 'icons-in-terminal-default-adjust)
+  ;; (defalias 'all-the-icons-color-icons 'icons-in-terminal-color-icons)
+  ;; (defalias 'all-the-icons-scale-factor 'icons-in-terminal-scale-factor)
+  ;; (defalias 'all-the-icons-icon-alist 'icons-in-terminal-icon-alist)
+  ;; (defalias 'all-the-icons-dir-icon-alist 'icons-in-terminal-dir-icon-alist)
+  ;; (defalias 'all-the-icons-weather-icon-alist 'icons-in-terminal-weather-icon-alist)
   )
 ;; Fontset -- Cica: https://github.com/miiton/Cica
 (when window-system
