@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi@ai.cs.ehime-u.ac.jp>
 ;; Created: 2018-05-26
-;; Modified: 2021-02-03
+;; Modified: 2021-02-04
 ;; Version: 0.0.4
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -70,8 +70,8 @@
 (setq package-enable-at-startup nil)
 ;;;; for GUI
 ;; window size
-(push '(height . 56) default-frame-alist)
-(push '(width . 117) default-frame-alist)
+(push '(height . 72) default-frame-alist)
+(push '(width . 144) default-frame-alist)
 (setq initial-frame-alist default-frame-alist)
 
 (provide 'early-init)

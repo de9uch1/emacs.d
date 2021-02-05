@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi@ai.cs.ehime-u.ac.jp>
 ;; Created: 2018-05-26
-;; Modified: 2021-02-03
+;; Modified: 2021-02-05
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -36,8 +36,8 @@
 
 ;;; Startup
 ;;;; Profiler
-;; (require 'profiler)
-;; (profiler-start 'cpu)
+(require 'profiler)
+(profiler-start 'cpu)
 (add-hook 'emacs-startup-hook
           (lambda ()
             (message "init time: %.3f sec"
@@ -66,7 +66,7 @@
 
 
 ;;;; cl-lib -- load Common Lisp library:
-(eval-when-compile (require 'cl-lib nil t))
+;; (eval-when-compile (require 'cl-lib nil t))
 (setq byte-compile-warnings '(cl-functions))
 
 ;;; System Local
@@ -105,11 +105,6 @@ COMP is used instead of eq when COMP is given."
 (defmacro my:disable-mode (mode)
   "Disable MODE."
   `(,mode 0))
-;; add-function-to-hook
-(cl-defmacro my:add-function-to-hook (function &optional &body hooks)
-  (cl-loop for target-hook in hooks
-           do (add-hook (intern (concat (symbol-name target-hook) "-hook"))
-                        function)))
 ;; suppressed message
 (defmacro with-suppressed-message (&rest body)
   "Suppress new messages temporarily in the echo area and the `*Messages*' buffer while BODY is evaluated."
@@ -290,7 +285,7 @@ COMP is used instead of eq when COMP is given."
     (setq initial-frame-alist default-frame-alist)))
 ;; truncate lines
 (setq-default truncate-lines t)
-(my:add-function-to-hook (lambda () (setq-local truncate-lines nil)) org-mode)
+(add-hook 'org-mode-hook #'(lambda () (setq-local truncate-lines nil)))
 ;; transparent-mode
 (use-package tp-mode
   :if window-system
@@ -307,8 +302,12 @@ COMP is used instead of eq when COMP is given."
     (setq linum-format "%5d ")))
 ;; highlight line
 (my:enable-mode global-hl-line-mode)
-(my:add-function-to-hook
- (lambda () (progn (my:disable-mode linum-mode) (my:disable-mode hl-line-mode))) doc-view-mode)
+(add-hook
+ 'doc-view-mode-hook
+ #'(lambda ()
+     (progn
+       (my:disable-mode linum-mode)
+       (my:disable-mode hl-line-mode))))
 ;; show paren
 (use-package paren
   :ensure nil
@@ -604,7 +603,7 @@ COMP is used instead of eq when COMP is given."
   (company-transformers '(company-sort-by-backend-importance))
   (company-idle-delay 0.01)
   (company-selection-wrap-around t)
-  (company-minimum-prefix-length 0)
+  (company-minimum-prefix-length 1)
   (completion-ignore-case t)
   (company-show-numbers t)
   :config
@@ -746,10 +745,13 @@ COMP is used instead of eq when COMP is given."
 
 ;;; Text
 ;;;; migemo
+(defvar migemo-exists-p
+  (eval-when-compile
+    (and (executable-find "cmigemo")
+         (locate-library "migemo"))))
 (use-package migemo
   :ensure t
-  :if (and (executable-find "cmigemo")
-           (locate-library "migemo"))
+  :if migemo-exists-p
   :custom
   (migemo-coding-system 'utf-8-unix)
   (migemo-command "cmigemo")
@@ -860,43 +862,6 @@ Call this on `flyspell-incorrect-hook'."
   (eww-bookmarks-directory my:d:eww)
   (eww-history-limit 9999)
   (eww-search-prefix "https://www.google.com/search?q="))
-;;;; emacs-w3m
-(use-package w3m
-  :ensure t
-  :disabled t
-  :if (executable-find "w3m")
-  :bind (:map w3m-mode-map
-              ("S" . w3m-db-history))
-  :config
-  (defvar my:d:w3m:config (expand-file-name "app/emacs-w3m" my:d:nextcloud))
-  (defvar my:d:w3m:tmp (expand-file-name "w3m" my:d:tmp))
-  ;; user's files
-  (setq w3m-init-file (or load-file-name (buffer-file-name))
-        w3m-default-save-directory (my:locate-home "Downloads")
-        w3m-bookmark-file (expand-file-name "bookmark" my:d:w3m:config)
-        w3m-arrived-file (expand-file-name "history" my:d:w3m:tmp)
-        w3m-cookie-file (expand-file-name "cookie" my:d:w3m:tmp)
-        w3m-form-textarea-directory (expand-file-name "formhist" my:d:w3m:tmp)
-        w3m-session-file (expand-file-name "sessions" my:d:w3m:tmp)
-        w3m-icon-directory (expand-file-name "icon" my:d:w3m:tmp)
-        w3m-favicon-cache-file (expand-file-name "favicon" my:d:w3m:tmp))
-  ;; text encoding
-  (setq w3m-default-coding-system 'utf-8
-        w3m-bookmark-file-coding-system 'utf-8
-        w3m-coding-system-priority-list '(utf-8 shift_jis euc-jp iso-2022-jp cp932))
-  ;; inline images
-  ;;(setq w3m-default-display-inline-images t)
-  (setq w3m-default-display-inline-images nil)
-  ;; misc.
-  (setq w3m-session-load-last-sessions t)
-  (setq w3m-use-tab t)
-  (setq w3m-use-favicon t)
-  (setq w3m-favicon-use-cache-file t)
-  (setq w3m-use-cookies t)
-  (setq w3m-keep-arrived-urls 100000)
-  (setq w3m-db-history-display-size 100000)
-  ;; weather
-  (setq w3m-weather-default-area "愛媛県・中予"))
 ;;;; undo
 ;; undohist
 (use-package undohist
@@ -913,19 +878,25 @@ Call this on `flyspell-incorrect-hook'."
 (use-package yasnippet
   :ensure t
   :diminish yas-minor-mode
-  :after company
-  :hook (prog-mode . yas-global-mode)
+  :after company-mode
+  :hook (prog-mode . yas-minor-mode)
+  :init
+  (add-hook 'yas-minor-mode
+            #'(lambda ()
+                (setq-local
+                 company-backends
+                 (mapcar #'company-mode/backend-with-yas company-backends))))
   :config
   (use-package yasnippet-snippets
-    :ensure t)
+    :ensure t
+    :hook (yas-minor-mode . #'yasnippet-snippets-initialize))
   (setq yas-snippet-dirs (list (expand-file-name "snippets" my:d:share) yasnippet-snippets-dir))
   (defvar company-mode/enable-yas t)
   (defun company-mode/backend-with-yas (backend)
     (if (or (not company-mode/enable-yas) (and (listp backend) (member 'company-yasnippet backend)))
         backend
       (append (if (consp backend) backend (list backend))
-              '(:with company-yasnippet))))
-  (setq company-backends (mapcar #'company-mode/backend-with-yas company-backends)))
+              '(:with company-yasnippet)))))
 
 ;;; VCS -- Git
 (setq vc-follow-symlinks t)
@@ -1091,10 +1062,10 @@ Call this on `flyspell-incorrect-hook'."
 ;;;; Lisp -- Common Lisp, Scheme
 ;;;;; Common Lisp
 ;; SLIME
-(setq quicklisp-directory (my:locate-home "quicklisp"))
+(defvar quicklisp-directory
+  (eval-when-compile (my:path-exists? (my:locate-home "quicklisp"))))
 (use-package slime
-  :if (file-exists-p quicklisp-directory)
-  :load-path quicklisp-directory
+  :if quicklisp-directory
   :config
   (setq inferior-lisp-program "clisp")
   (load (expand-file-name "slime-helper.el" quicklisp-directory)))
@@ -1170,9 +1141,8 @@ Call this on `flyspell-incorrect-hook'."
   :ensure-system-package ((rubocop . "gem install rubocop")
                           (ruby-lint . "gem install ruby-lint"))
   :if (executable-find "rubocop")
-  :defer t
+  :hook (enh-ruby-mode . rubocop-mode)
   :config
-  (add-hook 'enh-ruby-mode-hook 'rubocop-mode)
   ;; definition for flycheck
   (flycheck-define-checker ruby-rubylint
     "A Ruby syntax and style checker using the rubylint tool."
@@ -1362,6 +1332,7 @@ Call this on `flyspell-incorrect-hook'."
 ;;;; twittering-mode
 (use-package twittering-mode
   :ensure t
+  :commands twit
   :config
   (setq twittering-icon-mode t)                ; Show icons
   (setq twittering-timer-interval 300)         ; Update your timeline each 300 seconds (5 minutes)
@@ -1487,13 +1458,13 @@ Call this on `flyspell-incorrect-hook'."
 ;;;; multi-term
 (use-package multi-term
   :ensure t
-  :defer t
+  :commands multi-term
   :config
   (setq multi-term-program (executable-find "bash")))
 
 ;;; Profiler
-;; (profiler-report)
-;; (profiler-stop)
+(profiler-report)
+(profiler-stop)
 
 ;; Local Variables:
 ;; byte-compile-warnings: (not cl-functions obsolete)
