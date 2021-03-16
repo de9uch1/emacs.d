@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi@ai.cs.ehime-u.ac.jp>
 ;; Created: 2018-05-26
-;; Modified: 2021-02-05
+;; Modified: 2021-03-11
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -36,8 +36,8 @@
 
 ;;; Startup
 ;;;; Profiler
-(require 'profiler)
-(profiler-start 'cpu)
+;; (require 'profiler)
+;; (profiler-start 'cpu)
 (add-hook 'emacs-startup-hook
           (lambda ()
             (message "init time: %.3f sec"
@@ -134,7 +134,8 @@ COMP is used instead of eq when COMP is given."
 ;;; Package Management
 ;;;; package.el
 (require 'package nil t)
-(custom-set-variables '(package-archives '(("melpa" . "https://melpa.org/packages/"))))
+(custom-set-variables
+ '(package-archives '(("melpa" . "https://melpa.org/packages/"))))
 (package-initialize)
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
@@ -878,25 +879,24 @@ Call this on `flyspell-incorrect-hook'."
 (use-package yasnippet
   :ensure t
   :diminish yas-minor-mode
-  :after company-mode
-  :hook (prog-mode . yas-minor-mode)
-  :init
-  (add-hook 'yas-minor-mode
-            #'(lambda ()
-                (setq-local
-                 company-backends
-                 (mapcar #'company-mode/backend-with-yas company-backends))))
+  :after company
+  :hook (prog-mode . yas-global-mode)
   :config
   (use-package yasnippet-snippets
-    :ensure t
-    :hook (yas-minor-mode . #'yasnippet-snippets-initialize))
-  (setq yas-snippet-dirs (list (expand-file-name "snippets" my:d:share) yasnippet-snippets-dir))
+    :ensure t)
+  (push (expand-file-name "snippets" my:d:share) yas-snippet-dirs)
   (defvar company-mode/enable-yas t)
   (defun company-mode/backend-with-yas (backend)
     (if (or (not company-mode/enable-yas) (and (listp backend) (member 'company-yasnippet backend)))
         backend
       (append (if (consp backend) backend (list backend))
-              '(:with company-yasnippet)))))
+              '(:with company-yasnippet))))
+  (add-hook 'yas-minor-mode
+            #'(lambda ()
+                (setq-local
+                 company-backends
+                 (mapcar #'company-mode/backend-with-yas company-backends))))
+  )
 
 ;;; VCS -- Git
 (setq vc-follow-symlinks t)
@@ -1174,6 +1174,7 @@ Call this on `flyspell-incorrect-hook'."
   :hook (enh-ruby-mode . inf-ruby-minor-mode))
 
 ;;;; python
+;; python-mode
 (use-package python-mode
   :ensure t
   :config
@@ -1185,8 +1186,19 @@ Call this on `flyspell-incorrect-hook'."
     :ensure t
     :init (setq lsp-python-ms-auto-install-server t)
     :hook (python-mode . (lambda () (require 'lsp-python-ms) (lsp))))
+  (setq lsp-pyls-plugins-pylint-enabled t)
   (setq lsp-pyls-plugins-autopep8-enabled nil)
-  (setq lsp-pyls-plugins-yapf-enabled t))
+  (setq lsp-pyls-plugins-yapf-enabled nil))
+;; python-black
+(use-package python-black
+  :ensure t)
+;; py-isort
+(use-package py-isort
+  :ensure t)
+;; poetry
+(use-package poetry
+  :ensure t
+  :hook (python-mode . poetry-tracking-mode))
 ;; quickrun
 (use-package quickrun
   :ensure t
@@ -1463,8 +1475,8 @@ Call this on `flyspell-incorrect-hook'."
   (setq multi-term-program (executable-find "bash")))
 
 ;;; Profiler
-(profiler-report)
-(profiler-stop)
+;; (profiler-report)
+;; (profiler-stop)
 
 ;; Local Variables:
 ;; byte-compile-warnings: (not cl-functions obsolete)
