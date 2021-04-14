@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi@ai.cs.ehime-u.ac.jp>
 ;; Created: 2018-05-26
-;; Modified: 2021-03-11
+;; Modified: 2021-04-12
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -135,7 +135,8 @@ COMP is used instead of eq when COMP is given."
 ;;;; package.el
 (require 'package nil t)
 (custom-set-variables
- '(package-archives '(("melpa" . "https://melpa.org/packages/"))))
+ '(package-archives '(("melpa" . "https://melpa.org/packages/")
+                      ("gnu" . "https://elpa.gnu.org/packages/"))))
 (package-initialize)
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
@@ -342,7 +343,7 @@ COMP is used instead of eq when COMP is given."
   (exec-path-from-shell-initialize))
 ;; Bell
 ;; Alternative flash the screen
-(setq visible-bell t)
+(setq visible-bell nil)
 ;; Indent
 (setq-default indent-tabs-mode nil)
 (setq-default tab-width 4)
