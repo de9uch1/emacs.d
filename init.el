@@ -4,9 +4,9 @@
 ;; Filename: init.el
 ;; Description: my emacs configuration
 ;; Package-Requires: ((emacs "26.1"))
-;; Author: Hiroyuki Deguchi <deguchi@ai.cs.ehime-u.ac.jp>
+;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2021-04-12
+;; Modified: 2021-05-20
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -116,7 +116,7 @@ COMP is used instead of eq when COMP is given."
 ;; Name
 (setq user-full-name "Hiroyuki Deguchi")
 ;; E-mail Address
-(setq user-mail-address "deguchi@ai.cs.ehime.ac.jp")
+(setq user-mail-address "deguchi.hiroyuki.db0@is.naist.jp")
 ;;;; Directory --
 ;; $HOME/.emacs.d
 ;; for ``emacs -q -l .emacs''
@@ -977,7 +977,7 @@ Call this on `flyspell-incorrect-hook'."
          ("M-," . xref-pop-marker-stack)
          ("M-/" . xref-find-references))
   :commands lsp
-  :hook ((python-mode sh-mode c++-mode) . #'lsp)
+  :hook ((python-mode sh-mode c++-mode rust-mode) . #'lsp)
   :custom
   (lsp-print-io nil)
   (lsp-trace nil)
@@ -990,6 +990,7 @@ Call this on `flyspell-incorrect-hook'."
   (lsp-prefer-capf t)
   (lsp-enable-snippet t)
   (lsp-session-file (expand-file-name "lsp-session-v1" my:d:tmp))
+  (lsp-rust-server 'rust-analyzer)
   :config
   (setq lsp-restart 'auto-restart)
   (setq lsp-completion-provider :capf)
@@ -1024,6 +1025,14 @@ Call this on `flyspell-incorrect-hook'."
   :mode
   (("\.\(y\|yy\)$" . bison-mode)
    ("\.\(l\|ll\)$" . flex-mode)))
+
+;;;; Rust
+(use-package rust-mode
+  :ensure t
+  :custom (rust-format-on-save t))
+(use-package cargo
+  :ensure t
+  :hook (rust-mode . cargo-minor-mode))
 
 ;;;; shell script
 (use-package fish-mode
