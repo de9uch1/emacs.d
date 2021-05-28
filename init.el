@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2021-05-20
+;; Modified: 2021-05-28
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -1073,12 +1073,14 @@ Call this on `flyspell-incorrect-hook'."
 ;;;;; Common Lisp
 ;; SLIME
 (defvar quicklisp-directory
-  (eval-when-compile (my:path-exists? (my:locate-home "quicklisp"))))
+  (my:path-exists? (my:locate-home "quicklisp")))
 (use-package slime
   :if quicklisp-directory
+  :ensure slime-company
   :config
-  (setq inferior-lisp-program "clisp")
-  (load (expand-file-name "slime-helper.el" quicklisp-directory)))
+  (load (expand-file-name "slime-helper.el" quicklisp-directory))
+  (setq inferior-lisp-program "sbcl")
+  (slime-setup '(slime-fancy slime-company)))
 ;;;;; Scheme
 (when (executable-find "gosh")
   (setq scheme-program-name "gosh -i")
@@ -1208,7 +1210,9 @@ Call this on `flyspell-incorrect-hook'."
 ;; poetry
 (use-package poetry
   :ensure t
-  :hook (python-mode . poetry-tracking-mode))
+  :hook (python-mode . poetry-tracking-mode)
+  :custom
+  (poetry-tracking-strategy 'projectile))
 ;; quickrun
 (use-package quickrun
   :ensure t
@@ -1288,6 +1292,8 @@ Call this on `flyspell-incorrect-hook'."
   (use-package ox-latex)
   (use-package ox-beamer)
   (use-package ox-gfm
+    :ensure t)
+  (use-package ox-rst
     :ensure t)
   (setq org-capture-bookmark nil)
   (setq org-startup-truncated nil)
