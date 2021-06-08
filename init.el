@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2021-05-28
+;; Modified: 2021-06-07
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -1194,10 +1194,15 @@ Call this on `flyspell-incorrect-hook'."
   (setq py-current-defun-show nil)
   (setq py-jump-on-exception nil)
   (setq py-current-defun-delay 1000)
+  ;; poetry
+  (use-package poetry
+    :ensure t
+    :custom
+    (poetry-tracking-strategy 'projectile))
   (use-package lsp-python-ms
     :ensure t
     :init (setq lsp-python-ms-auto-install-server t)
-    :hook (python-mode . (lambda () (require 'lsp-python-ms) (lsp))))
+    :hook (python-mode . (lambda () (poetry-tracking-mode 1) (require 'lsp-python-ms) (lsp))))
   (setq lsp-pyls-plugins-pylint-enabled t)
   (setq lsp-pyls-plugins-autopep8-enabled nil)
   (setq lsp-pyls-plugins-yapf-enabled nil))
@@ -1207,12 +1212,6 @@ Call this on `flyspell-incorrect-hook'."
 ;; py-isort
 (use-package py-isort
   :ensure t)
-;; poetry
-(use-package poetry
-  :ensure t
-  :hook (python-mode . poetry-tracking-mode)
-  :custom
-  (poetry-tracking-strategy 'projectile))
 ;; quickrun
 (use-package quickrun
   :ensure t
