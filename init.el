@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2021-06-07
+;; Modified: 2021-06-09
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -344,6 +344,7 @@ COMP is used instead of eq when COMP is given."
 ;; Bell
 ;; Alternative flash the screen
 (setq visible-bell nil)
+(setq ring-bell-function 'ignore)
 ;; Indent
 (setq-default indent-tabs-mode nil)
 (setq-default tab-width 4)
