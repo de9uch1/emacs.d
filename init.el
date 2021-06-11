@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2021-06-09
+;; Modified: 2021-06-11
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -538,7 +538,7 @@ COMP is used instead of eq when COMP is given."
          ("C-x C-r" . counsel-recentf)
          ("M-y" . counsel-yank-pop)
          ("C-x b" . counsel-switch-buffer)
-         ("M-g" . counsel-rg))
+         ("M-G" . counsel-rg))
   :custom
   (counsel-yank-pop-separator "\n--------\n")
   (kill-ring-max 1000)
@@ -922,7 +922,7 @@ Call this on `flyspell-incorrect-hook'."
   :defer t)
 (use-package counsel-ghq
   :quelpa (counsel-ghq :fetcher github :repo windymelt/counsel-ghq)
-  :bind ("C-c g" . counsel-ghq))
+  :bind ("M-g" . counsel-ghq))
 
 ;;; Programming Language
 ;;;; projectile
@@ -1043,6 +1043,12 @@ Call this on `flyspell-incorrect-hook'."
   :if my:gentoo-p
   :mode
   (("make.conf" . shell-script-mode)))
+
+;;;; YAML
+(use-package yaml-mode
+  :ensure t
+  :custom
+  (yaml-indent-offset 4))
 
 ;;;; TeX
 (use-package yatex
@@ -1204,6 +1210,9 @@ Call this on `flyspell-incorrect-hook'."
     :ensure t
     :init (setq lsp-python-ms-auto-install-server t)
     :hook (python-mode . (lambda () (poetry-tracking-mode 1) (require 'lsp-python-ms) (lsp))))
+  ;; (use-package lsp-pyright
+  ;;   :ensure t
+  ;;   :hook (python-mode . (lambda () (poetry-tracking-mode 1) (require 'lsp-pyright) (lsp))))
   (setq lsp-pyls-plugins-pylint-enabled t)
   (setq lsp-pyls-plugins-autopep8-enabled nil)
   (setq lsp-pyls-plugins-yapf-enabled nil))
