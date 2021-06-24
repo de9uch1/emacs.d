@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2021-06-11
+;; Modified: 2021-06-23
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -349,9 +349,9 @@ COMP is used instead of eq when COMP is given."
 (setq-default indent-tabs-mode nil)
 (setq-default tab-width 4)
 ;; key binding
-(use-package bind-key
-  :bind (("C-m" . newline-and-indent)
-         ("C-h" . delete-backward-char))) ; C-h -> Backspace
+(bind-keys
+ ("C-m" . newline-and-indent)
+ ("C-h" . delete-backward-char)) ; C-h -> Backspace
 ;; .el > .elc
 (when (boundp 'load-prefer-newer)
   (setq load-prefer-newer t))
@@ -387,8 +387,6 @@ COMP is used instead of eq when COMP is given."
   :hook (before-save . #'time-stamp))
 ;; Emacs Server
 (use-package server
-  :init
-  (defvar server-socket-dir (expand-file-name "server" my:d:tmp))
   :config
   (unless (server-running-p)
     (server-start)))
@@ -432,10 +430,10 @@ COMP is used instead of eq when COMP is given."
   (push '("*Async Shell Command*") popwin:special-display-config))
 ;; move window
 (use-package windmove
-  :bind (("C-c <left>" . windmove-left)
-         ("C-c <right>" . windmove-right)
-         ("C-c <up>" . windmove-up)
-         ("C-c <down>" . windmove-down)))
+  :bind (("M-<left>" . windmove-left)
+         ("M-<right>" . windmove-right)
+         ("M-<up>" . windmove-up)
+         ("M-<down>" . windmove-down)))
 ;; eldoc
 (my:disable-mode global-eldoc-mode)
 (use-package eldoc-overlay
@@ -444,6 +442,12 @@ COMP is used instead of eq when COMP is given."
   (setq eldoc-idle-delay 30))
 
 ;;; Global Packages
+(use-package evil
+  :ensure t
+  :custom
+  (evil-toggle-key "M-q")
+  :config
+  (my:disable-mode evil-mode))
 ;;;; eshell
 (use-package eshell
   :bind ("M-s" . eshell)
@@ -538,7 +542,7 @@ COMP is used instead of eq when COMP is given."
          ("C-x C-r" . counsel-recentf)
          ("M-y" . counsel-yank-pop)
          ("C-x b" . counsel-switch-buffer)
-         ("M-G" . counsel-rg))
+         ("C-M-G" . counsel-rg))
   :custom
   (counsel-yank-pop-separator "\n--------\n")
   (kill-ring-max 1000)
@@ -694,57 +698,42 @@ COMP is used instead of eq when COMP is given."
              ("C-p" . tab-previous)
              ("z" . tab-recent)
              ("C-z" . tab-recent)))
-(use-package elscreen
-  :ensure t
-  :if (not tab-bar-p)
-  :custom
-  (elscreen-prefix-key (kbd "C-z"))
-  (elscreen-tab-display-kill-screen nil)
-  (elscreen-tab-display-control nil)
-  (elscreen-display-screen-number nil)
-  :config
-  (use-package elscreen-server)
-  (use-package elscreen-color-theme)
-  (use-package counsel
-    :config
-    (defun my:elscreen-recentf ()
-      (interactive)
-      (let ((target-screen (elscreen-get-current-screen)))
-        (if (setq target-screen (elscreen-create-internal 'noerror))
-            (elscreen-goto target-screen))
-        (counsel-recentf)
-        ))
-    (bind-keys :map elscreen-map ("C-r" . my:elscreen-recentf)))
-  (elscreen-start))
 ;; Centaur tabs
 (use-package centaur-tabs
   :ensure t
-  :disabled t
   :hook (after-init . centaur-tabs-mode)
-  :bind
-  (:map centaur-tabs-prefix-map
-        ("n" . centaur-tabs-forward)
-        ("C-n" . centaur-tabs-forward)
-        ("p" . centaur-tabs-backward)
-        ("C-p" . centaur-tabs-backward)
-        ("k" . kill-current-buffer)
-        ("C-k" . kill-current-buffer)
-        ("f" . centaur-tabs-forward-group)
-        ("C-f" . centaur-tabs-forward-group)
-        ("b" . centaur-tabs-backward-group)
-        ("C-b" . centaur-tabs-backward-group)
-        ("C-a" . centaur-tabs-select-beg-tab)
-        ("C-e" . centaur-tabs-select-end-tab))
   :custom
-  (centaur-tabs-prefix-key (kbd "C-z"))
+  (centaur-tabs-prefix-key (kbd "M-z"))
   (centaur-tabs-style "bar")
-  (centaur-tabs-height 24)
+  (centaur-tabs-height 12)
   (centaur-tabs-set-icons t)
   (centaur-tabs-set-bar 'left)
   (centaur-tabs-set-modified-marker t)
   (centaur-tabs-cycle-scope 'tabs)
   :config
-  (centaur-tabs-group-by-projectile-project))
+  (centaur-tabs-group-by-projectile-project)
+  (bind-keys
+   ("C-<tab>" . centaur-tabs-forward)
+   ("<C-S-iso-lefttab>" . centaur-tabs-backward)
+   :prefix-map centaur-tabs-prefix-map
+   :prefix "M-z"
+        ("n" . centaur-tabs-forward)
+        ("C-n" . centaur-tabs-forward)
+        ("M-n" . centaur-tabs-forward)
+        ("p" . centaur-tabs-backward)
+        ("C-p" . centaur-tabs-backward)
+        ("M-p" . centaur-tabs-backward)
+        ("k" . kill-current-buffer)
+        ("C-k" . kill-current-buffer)
+        ("M-k" . kill-current-buffer)
+        ("f" . centaur-tabs-forward-group)
+        ("C-f" . centaur-tabs-forward-group)
+        ("M-f" . centaur-tabs-forward-group)
+        ("b" . centaur-tabs-backward-group)
+        ("C-b" . centaur-tabs-backward-group)
+        ("M-b" . centaur-tabs-backward-group)
+        ("C-a" . centaur-tabs-select-beg-tab)
+        ("C-e" . centaur-tabs-select-end-tab)))
 
 ;;; Text
 ;;;; migemo
@@ -849,12 +838,15 @@ Call this on `flyspell-incorrect-hook'."
 ;;;; Translater
 (use-package google-translate
   :ensure t
-  :bind
-  ("M-t" . google-translate-at-point)
-  ("M-r" . google-translate-at-point-reverse)
   :custom
   (google-translate-default-source-language "en")
-  (google-translate-default-target-language "ja"))
+  (google-translate-default-target-language "ja")
+  :config
+  (bind-keys
+   :prefix-map google-translate-map
+   :prefix "M-t"
+   ("M-t" . google-translate-at-point)
+   ("M-r" . google-translate-at-point-reverse)))
 
 ;;; Common Packages
 ;;;; eww
@@ -897,8 +889,7 @@ Call this on `flyspell-incorrect-hook'."
             #'(lambda ()
                 (setq-local
                  company-backends
-                 (mapcar #'company-mode/backend-with-yas company-backends))))
-  )
+                 (mapcar #'company-mode/backend-with-yas company-backends)))))
 
 ;;; VCS -- Git
 (setq vc-follow-symlinks t)
@@ -935,11 +926,30 @@ Call this on `flyspell-incorrect-hook'."
   (projectile-known-projects-file (expand-file-name "projectile-bookmarks.eld" my:d:tmp))
   :config
   (my:enable-mode projectile-mode)
+  (defun select-ssh-hostname ()
+    (interactive)
+    (defun extract-hosts ()
+      (let* ((extract "grep '^Host ' | cut -d' ' -f2- | grep -Eo '[^\s]+?' | sort -u | grep -v '\*'")
+             (ssh-dir (expand-file-name ".ssh" (getenv "HOME")))
+             (find-cat-pipe (concat "find " ssh-dir " -type f | xargs cat | ")))
+        (shell-command-to-string (concat find-cat-pipe extract))))
+    (ivy-read "[host] " (split-string (extract-hosts) "\n")))
+  (defun projectile-reposyncer-push ()
+    (interactive)
+    (if (executable-find "reposyncer")
+        (shell-command (concat "reposyncer push " (select-ssh-hostname) " " (projectile-acquire-root)))
+      (message "reposyncer not found.")))
+  (defun projectile-reposyncer-pull ()
+    (interactive)
+    (if (executable-find "reposyncer")
+        (shell-command (concat "reposyncer pull " (select-ssh-hostname) " " (projectile-acquire-root)))
+      (message "reposyncer not found.")))
   (use-package counsel-projectile
     :ensure t
     :if (featurep 'counsel)
     :bind
     (:map projectile-mode-map
+          ("M-p" . projectile-command-map)
           ("C-c p" . projectile-command-map)
           ("C-c C-p" . projectile-command-map))))
 
@@ -1209,19 +1219,33 @@ Call this on `flyspell-incorrect-hook'."
   (use-package lsp-python-ms
     :ensure t
     :init (setq lsp-python-ms-auto-install-server t)
-    :hook (python-mode . (lambda () (poetry-tracking-mode 1) (require 'lsp-python-ms) (lsp))))
   ;; (use-package lsp-pyright
   ;;   :ensure t
   ;;   :hook (python-mode . (lambda () (poetry-tracking-mode 1) (require 'lsp-pyright) (lsp))))
+  ;; python-black
+  (use-package python-black
+    :ensure t)
+  ;; py-isort
+  (use-package py-isort
+    :ensure t)
+
+  (defun python-formatter ()
+    (interactive)
+    (py-isort-buffer)
+    (python-black-buffer))
+
+  (defun my-python-mode-hook ()
+    (my:enable-mode poetry-tracking-mode)
+    (require 'lsp-python-ms)
+    (lsp)
+    (bind-keys :map python-mode-map
+               ("C-c f" . python-formatter)
+               ("C-c C-f" . python-formatter)))
+  (add-hook 'python-mode-hook #'my-python-mode-hook)
   (setq lsp-pyls-plugins-pylint-enabled t)
   (setq lsp-pyls-plugins-autopep8-enabled nil)
   (setq lsp-pyls-plugins-yapf-enabled nil))
-;; python-black
-(use-package python-black
-  :ensure t)
-;; py-isort
-(use-package py-isort
-  :ensure t)
+
 ;; quickrun
 (use-package quickrun
   :ensure t
@@ -1245,10 +1269,10 @@ Call this on `flyspell-incorrect-hook'."
               ("C-c C-n" . outline-next-visible-heading)
               ("C-c C-p" . outline-previous-visible-heading)
               :map outline-mode-map
-              ("<tab>" . outline-cycle)))
+              ("<tab>" . outline-cycle))
   :init
   (use-package outline-magic
-    :ensure t)
+    :ensure t))
 
 ;;; To Work
 ;;;; Wanderlust -- E-mail client:
