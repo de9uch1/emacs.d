@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2021-06-23
+;; Modified: 2021-06-25
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -450,7 +450,7 @@ COMP is used instead of eq when COMP is given."
   (my:disable-mode evil-mode))
 ;;;; eshell
 (use-package eshell
-  :bind ("M-s" . eshell)
+  :bind ("M-e" . eshell)
   :hook (eshell-mode . (lambda () (bind-keys :map eshell-mode-map
                                              ("C-d" . delete-char)
                                              ("C-a" . eshell-bol))))
@@ -542,7 +542,7 @@ COMP is used instead of eq when COMP is given."
          ("C-x C-r" . counsel-recentf)
          ("M-y" . counsel-yank-pop)
          ("C-x b" . counsel-switch-buffer)
-         ("C-M-G" . counsel-rg))
+         ("M-r" . counsel-rg))
   :custom
   (counsel-yank-pop-separator "\n--------\n")
   (kill-ring-max 1000)
@@ -951,7 +951,9 @@ Call this on `flyspell-incorrect-hook'."
     (:map projectile-mode-map
           ("M-p" . projectile-command-map)
           ("C-c p" . projectile-command-map)
-          ("C-c C-p" . projectile-command-map))))
+          ("C-c C-p" . projectile-command-map)
+          :map projectile-command-map
+          ("s" . counsel-projectile-rg))))
 
 ;;;; Neotree
 (use-package neotree
@@ -1015,8 +1017,7 @@ Call this on `flyspell-incorrect-hook'."
     :hook (lsp-mode . lsp-ui-mode)
     :custom
     (lsp-ui-doc-max-width 60)
-    (lsp-ui-doc-max-height 20))
-  )
+    (lsp-ui-doc-max-height 20)))
 
 ;;;; C, C++
 ;; (use-package cquery
@@ -1214,11 +1215,13 @@ Call this on `flyspell-incorrect-hook'."
   ;; poetry
   (use-package poetry
     :ensure t
+    :bind (:map python-mode-map
+           ("C-x p" . poetry))
     :custom
     (poetry-tracking-strategy 'projectile))
   (use-package lsp-python-ms
     :ensure t
-    :init (setq lsp-python-ms-auto-install-server t)
+    :init (setq lsp-python-ms-auto-install-server t))
   ;; (use-package lsp-pyright
   ;;   :ensure t
   ;;   :hook (python-mode . (lambda () (poetry-tracking-mode 1) (require 'lsp-pyright) (lsp))))
@@ -1270,7 +1273,7 @@ Call this on `flyspell-incorrect-hook'."
               ("C-c C-p" . outline-previous-visible-heading)
               :map outline-mode-map
               ("<tab>" . outline-cycle))
-  :init
+  :config
   (use-package outline-magic
     :ensure t))
 
