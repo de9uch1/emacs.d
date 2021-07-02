@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2021-06-25
+;; Modified: 2021-07-02
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -929,7 +929,7 @@ Call this on `flyspell-incorrect-hook'."
   (defun select-ssh-hostname ()
     (interactive)
     (defun extract-hosts ()
-      (let* ((extract "grep '^Host ' | cut -d' ' -f2- | grep -Eo '[^\s]+?' | sort -u | grep -v '\*'")
+      (let* ((extract "grep '^Host ' | cut -d' ' -f2- | grep -Eo '[^ ]+' | sort -u | grep -v '\*'")
              (ssh-dir (expand-file-name ".ssh" (getenv "HOME")))
              (find-cat-pipe (concat "find " ssh-dir " -type f | xargs cat | ")))
         (shell-command-to-string (concat find-cat-pipe extract))))
