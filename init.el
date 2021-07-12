@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2021-07-02
+;; Modified: 2021-07-12
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -88,8 +88,8 @@ COMP is used instead of eq when COMP is given."
 (defmacro my:path-exists? (path)
   "Return PATH if PATH exists else nil."
   `(if (file-exists-p ,path)
-      ,path
-    nil))
+       ,path
+     nil))
 (defmacro my:locate-user-emacs-file (x)
   "Expand filename (locate-user-emacs-file X)."
   `(expand-file-name (locate-user-emacs-file ,x)))
@@ -129,7 +129,7 @@ COMP is used instead of eq when COMP is given."
   (let ((d (my:locate-home "Nextcloud")))
     (if (file-exists-p d)
         d
-        user-emacs-directory)))
+      user-emacs-directory)))
 
 ;;; Package Management
 ;;;; package.el
@@ -295,7 +295,7 @@ COMP is used instead of eq when COMP is given."
   :config
   (tp-mode 95))
 ;; display line number
-(if (version<= "26.0.50" emacs-version)
+(if (version<= "26.1" emacs-version)
     (progn
       (global-display-line-numbers-mode)
       (setq-default display-line-numbers-width 4))
@@ -598,7 +598,7 @@ COMP is used instead of eq when COMP is given."
   :ensure t
   :diminish company-mode
   :hook (after-init . global-company-mode)
-         ;;(emacs-lisp-mode . ,(lambda () (add-to-list 'company-backends 'company-elisp))))
+  ;;(emacs-lisp-mode . ,(lambda () (add-to-list 'company-backends 'company-elisp))))
   :bind (:map company-active-map
               ("C-n" . company-select-next)
               ("C-p" . company-select-previous)
@@ -606,7 +606,7 @@ COMP is used instead of eq when COMP is given."
               :map company-search-map
               ("C-n" . company-select-next)
               ("C-p" . company-select-previous))
-   :custom
+  :custom
   (company-transformers '(company-sort-by-backend-importance))
   (company-idle-delay 0.01)
   (company-selection-wrap-around t)
@@ -717,23 +717,23 @@ COMP is used instead of eq when COMP is given."
    ("<C-S-iso-lefttab>" . centaur-tabs-backward)
    :prefix-map centaur-tabs-prefix-map
    :prefix "M-z"
-        ("n" . centaur-tabs-forward)
-        ("C-n" . centaur-tabs-forward)
-        ("M-n" . centaur-tabs-forward)
-        ("p" . centaur-tabs-backward)
-        ("C-p" . centaur-tabs-backward)
-        ("M-p" . centaur-tabs-backward)
-        ("k" . kill-current-buffer)
-        ("C-k" . kill-current-buffer)
-        ("M-k" . kill-current-buffer)
-        ("f" . centaur-tabs-forward-group)
-        ("C-f" . centaur-tabs-forward-group)
-        ("M-f" . centaur-tabs-forward-group)
-        ("b" . centaur-tabs-backward-group)
-        ("C-b" . centaur-tabs-backward-group)
-        ("M-b" . centaur-tabs-backward-group)
-        ("C-a" . centaur-tabs-select-beg-tab)
-        ("C-e" . centaur-tabs-select-end-tab)))
+   ("n" . centaur-tabs-forward)
+   ("C-n" . centaur-tabs-forward)
+   ("M-n" . centaur-tabs-forward)
+   ("p" . centaur-tabs-backward)
+   ("C-p" . centaur-tabs-backward)
+   ("M-p" . centaur-tabs-backward)
+   ("k" . kill-current-buffer)
+   ("C-k" . kill-current-buffer)
+   ("M-k" . kill-current-buffer)
+   ("f" . centaur-tabs-forward-group)
+   ("C-f" . centaur-tabs-forward-group)
+   ("M-f" . centaur-tabs-forward-group)
+   ("b" . centaur-tabs-backward-group)
+   ("C-b" . centaur-tabs-backward-group)
+   ("M-b" . centaur-tabs-backward-group)
+   ("C-a" . centaur-tabs-select-beg-tab)
+   ("C-e" . centaur-tabs-select-end-tab)))
 
 ;;; Text
 ;;;; migemo
@@ -923,6 +923,7 @@ Call this on `flyspell-incorrect-hook'."
   :custom
   (projectile-enable-caching t)
   (projectile-completion-system 'ivy)
+  (projectile-cache-file (expand-file-name "projectile.cache" my:d:tmp))
   (projectile-known-projects-file (expand-file-name "projectile-bookmarks.eld" my:d:tmp))
   :config
   (my:enable-mode projectile-mode)
@@ -1003,6 +1004,7 @@ Call this on `flyspell-incorrect-hook'."
   (lsp-prefer-capf t)
   (lsp-enable-snippet t)
   (lsp-session-file (expand-file-name "lsp-session-v1" my:d:tmp))
+  (lsp-server-install-dir (expand-file-name "lsp" my:d:tmp))
   (lsp-rust-server 'rust-analyzer)
   :config
   (setq lsp-restart 'auto-restart)
@@ -1216,15 +1218,16 @@ Call this on `flyspell-incorrect-hook'."
   (use-package poetry
     :ensure t
     :bind (:map python-mode-map
-           ("C-x p" . poetry))
+                ("C-x p" . poetry))
     :custom
     (poetry-tracking-strategy 'projectile))
-  (use-package lsp-python-ms
-    :ensure t
-    :init (setq lsp-python-ms-auto-install-server t))
-  ;; (use-package lsp-pyright
+  ;; (use-package lsp-python-ms
   ;;   :ensure t
-  ;;   :hook (python-mode . (lambda () (poetry-tracking-mode 1) (require 'lsp-pyright) (lsp))))
+  ;;   :init (setq lsp-python-ms-auto-install-server t))
+  (use-package lsp-pyright
+    ;; npm install -g pyright
+    :ensure t
+    :hook (python-mode . (lambda () (poetry-tracking-mode 1) (require 'lsp-pyright) (lsp))))
   ;; python-black
   (use-package python-black
     :ensure t)
@@ -1378,6 +1381,8 @@ Call this on `flyspell-incorrect-hook'."
     :ensure t
     :if (file-directory-p org-directory)
     :commands (org-gcal-fetch org-gcal-sync)
+    :custom
+    (org-generic-id-locations-file (expand-file-name "org-generic-id-locations" my:d:tmp))
     :init
     (setq org-gcal-dir (expand-file-name "org-gcal" my:d:tmp))
     (unless org-gcal-dir
@@ -1525,6 +1530,31 @@ Call this on `flyspell-incorrect-hook'."
   :commands multi-term
   :config
   (setq multi-term-program (executable-find "bash")))
+;;;; vterm
+(use-package vterm
+  :ensure t
+  :custom
+  (vterm-max-scrollback 10000000)
+  (vterm-buffer-name-string "vterm: %s")
+  (vterm-keymap-exceptions '("<f1>" "<f12>" "C-c" "C-x" "C-u" "C-g" "C-l" "M-x" "M-o" "C-v" "M-v" "C-y" "M-y"))
+  :config
+  ;; Workaround of not working counsel-yank-pop
+  ;; https://github.com/akermu/emacs-libvterm#counsel-yank-pop-doesnt-work
+  (defun vterm-counsel-yank-pop-action (orig-fun &rest args)
+    (if (equal major-mode 'vterm-mode)
+        (let ((inhibit-read-only t)
+              (yank-undo-function (lambda (_start _end) (vterm-undo))))
+          (cl-letf (((symbol-function 'insert-for-yank)
+                     (lambda (str) (vterm-send-string str t))))
+            (apply orig-fun args)))
+      (apply orig-fun args)))
+  (advice-add 'counsel-yank-pop-action :around #'vterm-counsel-yank-pop-action))
+(use-package vterm-toggle
+  :ensure t
+  :bind ("<f12>" . vterm-toggle)
+  :custom
+  (vterm-toggle-scope 'project))
+
 
 ;;; Profiler
 ;; (profiler-report)
