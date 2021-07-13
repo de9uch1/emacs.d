@@ -1098,9 +1098,11 @@ Call this on `flyspell-incorrect-hook'."
   :if quicklisp-directory
   :ensure slime-company
   :config
-  (load (expand-file-name "slime-helper.el" quicklisp-directory))
   (setq inferior-lisp-program "sbcl")
-  (slime-setup '(slime-fancy slime-company)))
+  (defun lisp-hook ()
+    (load (expand-file-name "slime-helper.el" quicklisp-directory))
+    (slime-setup '(slime-fancy slime-company)))
+  (add-hook 'lisp-mode-hook #'lisp-hook))
 ;;;;; Scheme
 (when (executable-find "gosh")
   (setq scheme-program-name "gosh -i")
