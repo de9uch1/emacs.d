@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2021-07-12
+;; Modified: 2021-08-05
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -945,6 +945,25 @@ Call this on `flyspell-incorrect-hook'."
     (if (executable-find "reposyncer")
         (shell-command (concat "reposyncer pull " (select-ssh-hostname) " " (projectile-acquire-root)))
       (message "reposyncer not found.")))
+
+  (defun git-rsync-push ()
+    (interactive)
+    (if (executable-find "git-rsync")
+        (call-process-shell-command "git rsync push &")
+      (message "git-rsync not found.")))
+  (defvar auto-git-rsync nil)
+  (defun toggle-auto-git-rsync ()
+    (interactive)
+    (if auto-git-rsync
+        (progn
+          (remove-hook 'after-save-hook #'git-rsync-push t)
+          (setq auto-git-rsync nil)
+          (message "auto-git-rsync is disabled."))
+      (progn
+        (add-hook 'after-save-hook #'git-rsync-push nil t)
+        (setq auto-git-rsync t)
+        (message "auto-git-rsync is enabled."))))
+
   (use-package counsel-projectile
     :ensure t
     :if (featurep 'counsel)
