@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2021-08-05
+;; Modified: 2021-08-11
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -428,6 +428,9 @@ COMP is used instead of eq when COMP is given."
   (push '("*Warnings*") popwin:special-display-config)
   (push '("*system-packages*") popwin:special-display-config)
   (push '("*Async Shell Command*") popwin:special-display-config))
+;; popup
+(use-package popup
+  :ensure t)
 ;; move window
 (use-package windmove
   :bind (("M-<left>" . windmove-left)
@@ -661,8 +664,7 @@ COMP is used instead of eq when COMP is given."
             (23 . fa_calendar) ;; Event
             (24 . fa_square_o) ;; Operator
             (25 . fa_arrows)) ;; TypeParameter
-          )
-    )
+          ))
   (use-package company-quickhelp
     :ensure t
     :hook (company-mode . company-quickhelp-mode))
@@ -1242,13 +1244,17 @@ Call this on `flyspell-incorrect-hook'."
                 ("C-x p" . poetry))
     :custom
     (poetry-tracking-strategy 'projectile))
-  ;; (use-package lsp-python-ms
-  ;;   :ensure t
-  ;;   :init (setq lsp-python-ms-auto-install-server t))
   (use-package lsp-pyright
     ;; npm install -g pyright
     :ensure t
-    :hook (python-mode . (lambda () (poetry-tracking-mode 1) (require 'lsp-pyright) (lsp))))
+    :config
+    (dolist
+        (exclude-dirs
+         (list
+          "[/\\\\]\\.venv"
+          "[/\\\\]\\.mypy_cache"
+          "[/\\\\]__pycache__"))
+      (push exclude-dirs lsp-file-watch-ignored)))
   ;; python-black
   (use-package python-black
     :ensure t)
@@ -1259,11 +1265,25 @@ Call this on `flyspell-incorrect-hook'."
   (defun python-formatter ()
     (interactive)
     (py-isort-buffer)
-    (python-black-buffer))
+    (python-black-buffer)
+    (message "Formatted."))
+
+  (defvar py-auto-format nil)
+  (defun toggle-py-auto-format ()
+    (interactive)
+    (if py-auto-format
+        (progn
+          (message "Auto formatting is disabled.")
+          (remove-hook 'before-save-hook #'python-formatter t)
+          (setq py-auto-format nil))
+      (progn
+        (message "Auto formatting is enabled.")
+        (add-hook 'before-save-hook #'python-formatter nil t)
+        (setq py-auto-format t))))
 
   (defun my-python-mode-hook ()
     (my:enable-mode poetry-tracking-mode)
-    (require 'lsp-python-ms)
+    (require 'lsp-pyright)
     (lsp)
     (bind-keys :map python-mode-map
                ("C-c f" . python-formatter)
