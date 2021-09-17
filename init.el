@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2021-08-11
+;; Modified: 2021-09-12
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -402,7 +402,8 @@ COMP is used instead of eq when COMP is given."
   (use-package dired-async))
 (setq dired-dwim-target t               ; default copy target in 2 windows
       dired-recursive-copies 'always    ; recursive directory copy
-      dired-isearch-filenames t)        ; only match filenames
+      dired-isearch-filenames t         ; only match filenames
+      dired-listing-switches "-alhF")
 ;; generic-x
 (use-package generic-x)
 ;; save last opened place
@@ -929,25 +930,6 @@ Call this on `flyspell-incorrect-hook'."
   (projectile-known-projects-file (expand-file-name "projectile-bookmarks.eld" my:d:tmp))
   :config
   (my:enable-mode projectile-mode)
-  (defun select-ssh-hostname ()
-    (interactive)
-    (defun extract-hosts ()
-      (let* ((extract "grep '^Host ' | cut -d' ' -f2- | grep -Eo '[^ ]+' | sort -u | grep -v '\*'")
-             (ssh-dir (expand-file-name ".ssh" (getenv "HOME")))
-             (find-cat-pipe (concat "find " ssh-dir " -type f | xargs cat | ")))
-        (shell-command-to-string (concat find-cat-pipe extract))))
-    (ivy-read "[host] " (split-string (extract-hosts) "\n")))
-  (defun projectile-reposyncer-push ()
-    (interactive)
-    (if (executable-find "reposyncer")
-        (shell-command (concat "reposyncer push " (select-ssh-hostname) " " (projectile-acquire-root)))
-      (message "reposyncer not found.")))
-  (defun projectile-reposyncer-pull ()
-    (interactive)
-    (if (executable-find "reposyncer")
-        (shell-command (concat "reposyncer pull " (select-ssh-hostname) " " (projectile-acquire-root)))
-      (message "reposyncer not found.")))
-
   (defun git-rsync-push ()
     (interactive)
     (if (executable-find "git-rsync")
