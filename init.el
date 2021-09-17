@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2021-09-12
+;; Modified: 2021-09-17
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -1232,10 +1232,10 @@ Call this on `flyspell-incorrect-hook'."
     :config
     (dolist
         (exclude-dirs
-         (list
-          "[/\\\\]\\.venv"
-          "[/\\\\]\\.mypy_cache"
-          "[/\\\\]__pycache__"))
+         '("[/\\\\]\\.venv$"
+           "[/\\\\]\\.mypy_cache$"
+           "[/\\\\]__pycache__$"
+           "[/\\\\].pyenv$"))
       (push exclude-dirs lsp-file-watch-ignored)))
   ;; python-black
   (use-package python-black
