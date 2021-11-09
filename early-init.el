@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi@ai.cs.ehime-u.ac.jp>
 ;; Created: 2018-05-26
-;; Modified: 2021-02-12
+;; Modified: 2021-11-05
 ;; Version: 0.0.4
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -61,7 +61,8 @@
 (push '(scroll-bar-mode    . nil) default-frame-alist)
 (push '(column-number-mode . nil) default-frame-alist)
 (push '(cursor-type        . bar) default-frame-alist)
-(set-scroll-bar-mode nil)
+(when (functionp #'set-scroll-bar-mode)
+  (set-scroll-bar-mode nil))
 (setq inhibit-startup-screen t)
 (setq inhibit-startup-message t)
 (setq inhibit-startup-echo-area-message t)

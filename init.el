@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2021-09-17
+;; Modified: 2021-11-09
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -397,9 +397,7 @@ COMP is used instead of eq when COMP is given."
   (setq tramp-persistency-file-name (expand-file-name "tramp" my:d:tmp)))
 ;; dired
 (use-package dired-aux
-  :defer t
-  :config
-  (use-package dired-async))
+  :defer t)
 (setq dired-dwim-target t               ; default copy target in 2 windows
       dired-recursive-copies 'always    ; recursive directory copy
       dired-isearch-filenames t         ; only match filenames
@@ -672,7 +670,7 @@ COMP is used instead of eq when COMP is given."
   (use-package company-tabnine
     :ensure t
     :config
-    (add-to-list 'company-backends #'company-tabnine :append)
+    (add-to-list 'company-backends #'company-tabnine)
     ;; (company-tabnine-install-binary)
     ))
 
@@ -879,20 +877,21 @@ Call this on `flyspell-incorrect-hook'."
   :after company
   :hook (prog-mode . yas-global-mode)
   :config
-  (use-package yasnippet-snippets
-    :ensure t)
-  (push (expand-file-name "snippets" my:d:share) yas-snippet-dirs)
   (defvar company-mode/enable-yas t)
   (defun company-mode/backend-with-yas (backend)
     (if (or (not company-mode/enable-yas) (and (listp backend) (member 'company-yasnippet backend)))
         backend
       (append (if (consp backend) backend (list backend))
               '(:with company-yasnippet))))
-  (add-hook 'yas-minor-mode
-            #'(lambda ()
-                (setq-local
-                 company-backends
-                 (mapcar #'company-mode/backend-with-yas company-backends)))))
+  (use-package yasnippet-snippets
+    :ensure t)
+  (add-to-list 'yas-snippet-dirs (expand-file-name "snippets" my:d:share))
+  (add-hook
+   'yas-minor-mode
+   #'(lambda ()
+       (setq-local
+        company-backends
+        (mapcar #'company-mode/backend-with-yas company-backends)))))
 
 ;;; VCS -- Git
 (setq vc-follow-symlinks t)
@@ -908,10 +907,7 @@ Call this on `flyspell-incorrect-hook'."
   (git-gutter:modified ((t (:foreground "#f1fa8c" :background "#f1fa8c"))))
   (git-gutter:added    ((t (:foreground "#50fa7b" :background "#50fa7b"))))
   (git-gutter:deleted  ((t (:foreground "#ff79c6" :background "#ff79c6")))))
-(use-package gitconfig-mode
-  :ensure t
-  :defer t)
-(use-package gitignore-mode
+(use-package git-modes
   :ensure t
   :defer t)
 (use-package counsel-ghq
@@ -997,7 +993,9 @@ Call this on `flyspell-incorrect-hook'."
   :hook ((python-mode sh-mode c++-mode rust-mode) . #'lsp)
   :custom
   (lsp-print-io nil)
+  (lsp-log-io nil)
   (lsp-trace nil)
+  (lsp-server-trace nil)
   (lsp-print-performance nil)
   (lsp-auto-guess-root t)
   (lsp-enable-completion-at-point t)
@@ -1021,8 +1019,16 @@ Call this on `flyspell-incorrect-hook'."
     :ensure t
     :hook (lsp-mode . lsp-ui-mode)
     :custom
-    (lsp-ui-doc-max-width 60)
-    (lsp-ui-doc-max-height 20)))
+    (lsp-ui-doc-enable t)
+    (lsp-ui-doc-position 'top)
+    (lsp-ui-doc-header t)
+    (lsp-ui-doc-include-signature t)
+    (lsp-ui-doc-max-width 100)
+    (lsp-ui-doc-max-height 50)
+    (lsp-ui-doc-use-childframe t)
+    (lsp-ui-doc-use-webkit nil)
+    (lsp-ui-doc-alignment 'frame)
+    ))
 
 ;;;; C, C++
 ;; (use-package cquery
@@ -1216,7 +1222,7 @@ Call this on `flyspell-incorrect-hook'."
   :ensure t
   :config
   (setq py-outline-minor-mode-p nil)
-  (setq py-current-defun-show nil)
+  (setq py-current-defun-show t)
   (setq py-jump-on-exception nil)
   (setq py-current-defun-delay 1000)
   ;; poetry
@@ -1235,7 +1241,7 @@ Call this on `flyspell-incorrect-hook'."
          '("[/\\\\]\\.venv$"
            "[/\\\\]\\.mypy_cache$"
            "[/\\\\]__pycache__$"
-           "[/\\\\].pyenv$"))
+           "[/\\\\]\\.pyenv$"))
       (push exclude-dirs lsp-file-watch-ignored)))
   ;; python-black
   (use-package python-black
