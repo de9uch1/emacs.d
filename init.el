@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2021-11-09
+;; Modified: 2021-11-11
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -664,15 +664,10 @@ COMP is used instead of eq when COMP is given."
             (24 . fa_square_o) ;; Operator
             (25 . fa_arrows)) ;; TypeParameter
           ))
-  (use-package company-quickhelp
-    :ensure t
-    :hook (company-mode . company-quickhelp-mode))
-  (use-package company-tabnine
-    :ensure t
-    :config
-    (add-to-list 'company-backends #'company-tabnine)
-    ;; (company-tabnine-install-binary)
-    ))
+  ;; (use-package company-quickhelp
+  ;;   :ensure t
+  ;;   :hook (company-mode . company-quickhelp-mode))
+  )
 
 ;;;; Tab
 ;; Tab-bar-mode or Elscreen
@@ -975,12 +970,6 @@ Call this on `flyspell-incorrect-hook'."
   :ensure t
   :hook ((python-mode) . flycheck-mode)
   :config
-  ;; (use-package flycheck-color-mode-line
-  ;;   :ensure t
-  ;;   :hook (flycheck-mode . flycheck-color-mode-line-mode))
-  ;; (use-package flycheck-popup-tip
-  ;;   :ensure t
-  ;;   :hook (flycheck-mode . flycheck-popup-tip-mode))
   (setq flycheck-check-syntax-automatically '(mode-enabled save)))
 
 ;;;; LSP
@@ -992,6 +981,7 @@ Call this on `flyspell-incorrect-hook'."
   :commands lsp
   :hook ((python-mode sh-mode c++-mode rust-mode) . #'lsp)
   :custom
+  (lsp-keymap-prefix "M-k")
   (lsp-print-io nil)
   (lsp-log-io nil)
   (lsp-trace nil)
@@ -1027,8 +1017,7 @@ Call this on `flyspell-incorrect-hook'."
     (lsp-ui-doc-max-height 50)
     (lsp-ui-doc-use-childframe t)
     (lsp-ui-doc-use-webkit nil)
-    (lsp-ui-doc-alignment 'frame)
-    ))
+    (lsp-ui-doc-alignment 'frame)))
 
 ;;;; C, C++
 ;; (use-package cquery
@@ -1271,8 +1260,6 @@ Call this on `flyspell-incorrect-hook'."
 
   (defun my-python-mode-hook ()
     (my:enable-mode poetry-tracking-mode)
-    (require 'lsp-pyright)
-    (lsp)
     (bind-keys :map python-mode-map
                ("C-c f" . python-formatter)
                ("C-c C-f" . python-formatter)))
