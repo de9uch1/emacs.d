@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2021-11-11
+;; Modified: 2021-11-13
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -979,7 +979,7 @@ Call this on `flyspell-incorrect-hook'."
          ("M-," . xref-pop-marker-stack)
          ("M-/" . xref-find-references))
   :commands lsp
-  :hook ((python-mode sh-mode c++-mode rust-mode) . #'lsp)
+  :hook ((sh-mode c++-mode rust-mode) . #'lsp)
   :custom
   (lsp-keymap-prefix "M-k")
   (lsp-print-io nil)
@@ -1244,6 +1244,12 @@ Call this on `flyspell-incorrect-hook'."
     (py-isort-buffer)
     (python-black-buffer)
     (message "Formatted."))
+  (bind-keys :map python-mode-map
+             ("C-c f" . python-formatter)
+             ("C-c C-f" . python-formatter))
+
+  (add-hook 'python-mode-hook
+            #'(lambda () (my:enable-mode poetry-tracking-mode) (lsp)))
 
   (defvar py-auto-format nil)
   (defun toggle-py-auto-format ()
@@ -1258,12 +1264,6 @@ Call this on `flyspell-incorrect-hook'."
         (add-hook 'before-save-hook #'python-formatter nil t)
         (setq py-auto-format t))))
 
-  (defun my-python-mode-hook ()
-    (my:enable-mode poetry-tracking-mode)
-    (bind-keys :map python-mode-map
-               ("C-c f" . python-formatter)
-               ("C-c C-f" . python-formatter)))
-  (add-hook 'python-mode-hook #'my-python-mode-hook)
   (setq lsp-pyls-plugins-pylint-enabled t)
   (setq lsp-pyls-plugins-autopep8-enabled nil)
   (setq lsp-pyls-plugins-yapf-enabled nil))
