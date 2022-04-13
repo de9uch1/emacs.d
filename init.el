@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2021-11-13
+;; Modified: 2022-04-01
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -136,6 +136,7 @@ COMP is used instead of eq when COMP is given."
 (require 'package nil t)
 (custom-set-variables
  '(package-archives '(("melpa" . "https://melpa.org/packages/")
+                      ("melpa-stable" . "https://stable.melpa.org/packages/")
                       ("gnu" . "https://elpa.gnu.org/packages/"))))
 (package-initialize)
 (unless (package-installed-p 'use-package)
@@ -189,8 +190,9 @@ COMP is used instead of eq when COMP is given."
   (doom-modeline-project-detection 'projectile)
   :config
   (my:enable-mode doom-modeline-mode)
+  (my:enable-mode column-number-mode)
   (doom-modeline-def-modeline 'main
-    '(bar workspace-name window-number modals matches buffer-info remote-host word-count parrot selection-info)
+    '(bar workspace-name window-number modals matches buffer-info remote-host buffer-position word-count parrot selection-info)
     '(objed-state misc-info persp-name battery grip irc mu4e gnus github debug repl lsp minor-modes input-method indent-info major-mode process vcs checker)))
 ;; hide-mode-line
 (use-package hide-mode-line
@@ -931,11 +933,11 @@ Call this on `flyspell-incorrect-hook'."
     (interactive)
     (if auto-git-rsync
         (progn
-          (remove-hook 'after-save-hook #'git-rsync-push t)
+          (remove-hook 'after-save-hook #'git-rsync-push nil)
           (setq auto-git-rsync nil)
           (message "auto-git-rsync is disabled."))
       (progn
-        (add-hook 'after-save-hook #'git-rsync-push nil t)
+        (add-hook 'after-save-hook #'git-rsync-push nil nil)
         (setq auto-git-rsync t)
         (message "auto-git-rsync is enabled."))))
 
@@ -1217,6 +1219,7 @@ Call this on `flyspell-incorrect-hook'."
   ;; poetry
   (use-package poetry
     :ensure t
+    :hook (python-mode . poetry-tracking-mode)
     :bind (:map python-mode-map
                 ("C-x p" . poetry))
     :custom
@@ -1227,29 +1230,29 @@ Call this on `flyspell-incorrect-hook'."
     :config
     (dolist
         (exclude-dirs
-         '("[/\\\\]\\.venv$"
-           "[/\\\\]\\.mypy_cache$"
-           "[/\\\\]__pycache__$"
-           "[/\\\\]\\.pyenv$"))
+         `("[/\\\\]\\.venv\\'"
+           "[/\\\\]\\.cache\\'"
+           "[/\\\\]\\.mypy_cache\\'"
+           "[/\\\\]__pycache__\\'"))
       (push exclude-dirs lsp-file-watch-ignored)))
   ;; python-black
   (use-package python-black
     :ensure t)
-  ;; py-isort
-  (use-package py-isort
+  ;; python-isort
+  (use-package python-isort
     :ensure t)
 
   (defun python-formatter ()
     (interactive)
-    (py-isort-buffer)
+    (poetry-tracking-mode)
+    (python-isort-buffer)
     (python-black-buffer)
     (message "Formatted."))
   (bind-keys :map python-mode-map
              ("C-c f" . python-formatter)
              ("C-c C-f" . python-formatter))
 
-  (add-hook 'python-mode-hook
-            #'(lambda () (my:enable-mode poetry-tracking-mode) (lsp)))
+  (add-hook 'python-mode-hook #'(lambda () (lsp-deferred)))
 
   (defvar py-auto-format nil)
   (defun toggle-py-auto-format ()

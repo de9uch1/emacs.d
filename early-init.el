@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi@ai.cs.ehime-u.ac.jp>
 ;; Created: 2018-05-26
-;; Modified: 2021-11-05
+;; Modified: 2022-04-01
 ;; Version: 0.0.4
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -59,7 +59,6 @@
 (push '(menu-bar-lines     . nil) default-frame-alist)
 (push '(tool-bar-lines     . nil) default-frame-alist)
 (push '(scroll-bar-mode    . nil) default-frame-alist)
-(push '(column-number-mode . nil) default-frame-alist)
 (push '(cursor-type        . bar) default-frame-alist)
 (when (functionp #'set-scroll-bar-mode)
   (set-scroll-bar-mode nil))
