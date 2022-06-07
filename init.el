@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2022-04-01
+;; Modified: 2022-06-03
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -579,8 +579,7 @@ COMP is used instead of eq when COMP is given."
                               ((s-matches? sep it) it)
                               (t (migemo-get-pattern it)))
                         splitted))))
-  :custom
-  (avy-migemo-at-full-max 2)
+  (setq avy-migemo-at-full-max 4)
   ;; (use-package avy-migemo-e.g.swiper)
   )
 ;; ace-window
@@ -1211,6 +1210,8 @@ Call this on `flyspell-incorrect-hook'."
 ;; python-mode
 (use-package python-mode
   :ensure t
+  :mode
+  (("Pyakefile" . python-mode))
   :config
   (setq py-outline-minor-mode-p nil)
   (setq py-current-defun-show t)
@@ -1274,6 +1275,7 @@ Call this on `flyspell-incorrect-hook'."
 ;; quickrun
 (use-package quickrun
   :ensure t
+  :disabled t
   :config
   (quickrun-add-command "python"
     '((:command . "python"))
@@ -1334,13 +1336,14 @@ Call this on `flyspell-incorrect-hook'."
          ("C-c o" . org-capture)
          ("C-c a" . org-agenda)
          ("C-c b" . org-iswitchb)
-         ("C-c t" . org-todo))
+         ("C-c t" . org-todo)
+         ("C-c C-b" . org-beamer-export-to-pdf))
   :hook (org-mode . turn-on-font-lock)
   :init
   (setq org-directory (expand-file-name "org/" my:d:nextcloud))
   :custom
   (org-latex-pdf-process '("latexmk %f"))
-  (org-export-in-background t)
+  (org-export-in-background nil)
   (org-export-async-debug t)
   :config
   (use-package org-install)
@@ -1353,6 +1356,15 @@ Call this on `flyspell-incorrect-hook'."
     :ensure t)
   (use-package ox-rst
     :ensure t)
+  (setq org-latex-listings 'minted)
+  (setq org-latex-minted-options
+      '(("frame" "lines")
+        ("framesep=2mm")
+        ("linenos=true")
+        ("baselinestretch=1.2")
+        ("fontsize=\\scriptsize")
+        ("breaklines")
+        ))
   (setq org-capture-bookmark nil)
   (setq org-startup-truncated nil)
   (setq org-return-follows-link t)
