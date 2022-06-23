@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi@ai.cs.ehime-u.ac.jp>
 ;; Created: 2018-05-26
-;; Modified: 2022-04-01
+;; Modified: 2022-06-10
 ;; Version: 0.0.4
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -67,7 +67,9 @@
 (setq inhibit-startup-echo-area-message t)
 ;; (setq frame-inhibit-implied-resize t)
 (setq site-run-file nil)
+(setq use-file-dialog nil)
 (setq package-enable-at-startup nil)
+(setq package-quickstart nil)
 ;;;; for GUI
 ;; window size
 (push '(height . 72) default-frame-alist)

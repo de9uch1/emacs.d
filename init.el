@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2022-06-03
+;; Modified: 2022-06-10
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -865,7 +865,11 @@ Call this on `flyspell-incorrect-hook'."
 (use-package undo-tree
   :ensure t
   :diminish undo-tree-mode
-  :hook (after-init . global-undo-tree-mode))
+  :hook (after-init . global-undo-tree-mode)
+  :custom
+  (undo-tree-visualizer-diff t)
+  (undo-tree-history-directory-alist `(("." . ,(expand-file-name "undohist" my:d:tmp))))
+  (undo-tree-visualizer-timestamps t))
 ;;;; yasnippet
 (use-package yasnippet
   :ensure t
@@ -1011,6 +1015,7 @@ Call this on `flyspell-incorrect-hook'."
     :hook (lsp-mode . lsp-ui-mode)
     :custom
     (lsp-ui-doc-enable t)
+    (lsp-ui-doc-show-with-cursor t)
     (lsp-ui-doc-position 'top)
     (lsp-ui-doc-header t)
     (lsp-ui-doc-include-signature t)
