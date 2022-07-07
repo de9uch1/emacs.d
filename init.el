@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2022-06-10
+;; Modified: 2022-07-07
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -1215,9 +1215,10 @@ Call this on `flyspell-incorrect-hook'."
 ;; python-mode
 (use-package python-mode
   :ensure t
-  :mode
-  (("Pyakefile" . python-mode))
+  ;; :mode
+  ;; (("Pyakefile" . python-mode))
   :config
+  (push '("Pyakefile" . python-mode) auto-mode-alist)
   (setq py-outline-minor-mode-p nil)
   (setq py-current-defun-show t)
   (setq py-jump-on-exception nil)
