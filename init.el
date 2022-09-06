@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2022-07-07
+;; Modified: 2022-07-18
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -992,7 +992,7 @@ Call this on `flyspell-incorrect-hook'."
   (lsp-trace nil)
   (lsp-server-trace nil)
   (lsp-print-performance nil)
-  (lsp-auto-guess-root t)
+  ;; (lsp-auto-guess-root t)
   (lsp-enable-completion-at-point t)
   (lsp-response-timeout 5)
   (lsp-idle-delay 0.5)
