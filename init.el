@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2022-07-18
+;; Modified: 2022-09-20
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -860,7 +860,15 @@ Call this on `flyspell-incorrect-hook'."
   :ensure t
   :config
   (setq undohist-directory (expand-file-name "undohist" my:d:tmp))
-  (undohist-initialize))
+  (undohist-initialize)
+
+  (defun undohist--auto-recover (orig-fun &rest args)
+  "Ignore yes/no prompt in `undohist-recover-1'."
+  (cl-letf (((symbol-function 'yes-or-no-p) (lambda (&rest args) t))
+            ((symbol-function 'y-or-n-p) (lambda (&rest args) t)))
+    (apply orig-fun args)))
+  (advice-add 'undohist-recover-1 :around #'undohist--auto-recover)
+  )
 ;; undo-tree
 (use-package undo-tree
   :ensure t
