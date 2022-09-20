@@ -1034,16 +1034,13 @@ Call this on `flyspell-incorrect-hook'."
     (lsp-ui-doc-alignment 'frame)))
 
 ;;;; C, C++
-;; (use-package cquery
-;;   :if (executable-find "cquery")
-;;   :ensure t
-;;   :config
-;;   (setq cquery-executablez (executable-find "cquery")))
 (use-package ccls
   :if (executable-find "ccls")
   :ensure t
   :config
   (setq ccls-executable (executable-find "ccls")))
+(push (cons "\\.cu$" 'c++-mode) auto-mode-alist)
+(push (cons "\\.cuh$" 'c++-mode) auto-mode-alist)
 
 ;;;; bison, flex
 (use-package bison-mode
