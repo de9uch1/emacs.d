@@ -365,7 +365,7 @@ COMP is used instead of eq when COMP is given."
 ;; *.~ / .#* no back up
 (setq make-backup-files nil
       auto-save-default nil
-      auto-save-list-file-prefix (expand-file-name my:d:tmp ".saves-"))
+      auto-save-list-file-prefix (expand-file-name ".saves-" my:d:tmp))
 ;; definition temporary files and shared files
 (setq url-configuration-directory (expand-file-name "url" my:d:tmp)
       nsm-settings-file (expand-file-name "network-settings.data" my:d:tmp)
