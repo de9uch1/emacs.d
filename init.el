@@ -63,7 +63,7 @@
             gc-cons-percentage 0.6
             read-process-output-max (* 16 1024 1024))) t)
   (run-with-idle-timer 60.0 t #'garbage-collect))
-
+(setq package-native-compile t)
 
 ;;;; cl-lib -- load Common Lisp library:
 ;; (eval-when-compile (require 'cl-lib nil t))
@@ -610,8 +610,8 @@ COMP is used instead of eq when COMP is given."
               ("C-n" . company-select-next)
               ("C-p" . company-select-previous))
   :custom
-  (company-transformers '(company-sort-by-backend-importance))
-  (company-idle-delay 0.01)
+  (company-transformers '(company-sort-by-occurrence company-sort-by-backend-importance))
+  (company-idle-delay 0.02)
   (company-selection-wrap-around t)
   (company-minimum-prefix-length 1)
   (completion-ignore-case t)
@@ -902,6 +902,7 @@ Call this on `flyspell-incorrect-hook'."
         (mapcar #'company-mode/backend-with-yas company-backends)))))
 
 ;;; VCS -- Git
+(custom-set-variables '(find-file-visit-truename t))
 (setq vc-follow-symlinks t)
 (use-package magit
   :ensure t
@@ -992,7 +993,7 @@ Call this on `flyspell-incorrect-hook'."
          ("M-," . xref-pop-marker-stack)
          ("M-/" . xref-find-references))
   :commands lsp
-  :hook ((sh-mode c++-mode rust-mode) . #'lsp)
+  :hook ((sh-mode c++-mode rust-mode go-mode) . #'lsp)
   :custom
   (lsp-keymap-prefix "M-k")
   (lsp-print-io nil)
@@ -1001,6 +1002,7 @@ Call this on `flyspell-incorrect-hook'."
   (lsp-server-trace nil)
   (lsp-print-performance nil)
   ;; (lsp-auto-guess-root t)
+  ;; (lsp-use-plists t)
   (lsp-enable-completion-at-point t)
   (lsp-response-timeout 5)
   (lsp-idle-delay 0.5)
@@ -1056,7 +1058,20 @@ Call this on `flyspell-incorrect-hook'."
 (use-package cargo
   :ensure t
   :hook (rust-mode . cargo-minor-mode))
-
+;;;; Golang
+(use-package go-mode
+  :ensure t
+  :config
+  (defun go-mode-omnibus ()
+    ;; Go code formatting by goimports
+    (setq gofmt-command "goimports")
+    (add-hook 'before-save-hook 'gofmt-before-save)
+    ;; Customize compile command to run go build
+    (if (not (string-match "go" compile-command))
+        (set (make-local-variable 'compile-command)
+             "go build -v && go test -v && go vet"))
+    )
+  (add-hook 'go-mode-hook 'go-mode-omnibus))
 ;;;; shell script
 (use-package fish-mode
   :ensure t
@@ -1230,7 +1245,7 @@ Call this on `flyspell-incorrect-hook'."
   (setq py-current-defun-delay 1000)
   ;; poetry
   (use-package poetry
-    :ensure t
+    :quelpa (poetry :fetcher github :repo cybniv/poetry.el)
     :hook (python-mode . poetry-tracking-mode)
     :bind (:map python-mode-map
                 ("C-x p" . poetry))
@@ -1252,7 +1267,10 @@ Call this on `flyspell-incorrect-hook'."
     :ensure t)
   ;; python-isort
   (use-package python-isort
-    :ensure t)
+    :ensure t
+    :config
+    (setq python-isort-arguments
+          (append python-isort-arguments '("--profile" "black"))))
 
   (defun python-formatter ()
     (interactive)
@@ -1523,10 +1541,13 @@ Call this on `flyspell-incorrect-hook'."
   :ensure t
   :hook ((prog-mode yaml-mode) . highlight-indent-guides-mode)
   :custom
-  (highlight-indent-guides-auto-enabled t)
   (highlight-indent-guides-responsive t)
   (highlight-indent-guides-method 'character)
-  (highlight-indent-guides-character ?ǀ))
+  (highlight-indent-guides-character ?ǀ)
+  :config
+  (if window-system
+    (setq highlight-indent-guides-auto-enabled t)
+    (setq highlight-indent-guides-auto-enabled nil)))
 ;;;; expand-region
 (use-package expand-region
   :ensure t

@@ -1,6 +1,7 @@
 bookmarks
 custom.el
 elpa/*
+eln-cache/*
 quelpa/*
 tmp/*
 .python-environments/*
