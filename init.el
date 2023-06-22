@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2022-09-20
+;; Modified: 2023-05-11
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -257,19 +257,17 @@ COMP is used instead of eq when COMP is given."
   )
 ;; Fontset -- Cica: https://github.com/miiton/Cica
 (when window-system
-  (set-fontset-font "fontset-standard" 'unicode (font-spec :family "Cica" :size 16))
+  (let* ((fontname "Cica")
+         (fontsize 16))
+    (set-face-attribute 'default nil :family fontname :height 120)
+    (set-fontset-font nil 'ascii (font-spec :family fontname :size fontsize) nil 'append)
+    (set-fontset-font nil 'japanese-jisx0213.2004-1 (font-spec :family fontname) nil 'append))
   (use-package all-the-icons
     :config
     (unless (x-list-fonts "all-the-icons")
       (all-the-icons-install-fonts t))
-    (set-fontset-font "fontset-standard" 'unicode (font-spec :family (all-the-icons-alltheicon-family)) nil 'append)
-    (set-fontset-font "fontset-standard" 'unicode (font-spec :family (all-the-icons-material-family)) nil 'append)
-    (set-fontset-font "fontset-standard" 'unicode (font-spec :family (all-the-icons-fileicon-family)) nil 'append)
-    (set-fontset-font "fontset-standard" 'unicode (font-spec :family (all-the-icons-faicon-family)) nil 'append)
-    (set-fontset-font "fontset-standard" 'unicode (font-spec :family (all-the-icons-octicon-family)) nil 'append)
-    (set-fontset-font "fontset-standard" 'unicode (font-spec :family (all-the-icons-wicon-family)) nil 'append))
-  (set-face-font 'default "fontset-standard")
-  (push '(font . "fontset-standard") default-frame-alist)
+    (add-to-list 'face-font-rescale-alist '(".*icons.*" . 0.9))
+    (add-to-list 'face-font-rescale-alist '(".*FontAwesome.*" . 0.9)))
   (setq initial-frame-alist default-frame-alist))
 ;;;; Misc.
 (unless early-init-compat
