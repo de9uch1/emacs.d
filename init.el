@@ -99,10 +99,9 @@ COMP is used instead of eq when COMP is given."
   "Expand filename (locate-user-emacs-file X)."
   `(expand-file-name (locate-user-emacs-file ,x)))
 ;; my:locate-home
-(defconst HOME (getenv "HOME"))
 (defmacro my:locate-home (x)
-  "Concat and expand path X from HOME."
-  `(expand-file-name ,x ,HOME))
+  "Concat and expand path X from the home directory."
+  `(expand-file-name ,x,"~"))
 ;; mode enable/disable
 (defmacro my:enable-mode (mode)
   "Enable MODE."
