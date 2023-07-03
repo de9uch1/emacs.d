@@ -14,3 +14,5 @@ tmp/*
 recentf
 transient
 *.elc
+app/
+var/

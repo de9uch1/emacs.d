@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2023-05-11
+;; Modified: 2023-07-03
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -66,8 +66,13 @@
 (setq package-native-compile t)
 
 ;;;; cl-lib -- load Common Lisp library:
-;; (eval-when-compile (require 'cl-lib nil t))
-(setq byte-compile-warnings '(cl-functions))
+(eval-when-compile (require 'cl-lib nil t))
+(eval-when-compile
+  (setq byte-compile-warnings '(not cl-functions free-vars docstrings unresolved))
+  (if (and (fboundp 'native-comp-available-p)
+           (native-comp-available-p))
+      (setq native-comp-speed 2
+            native-comp-async-report-warnings-errors 'silent)))
 
 ;;; System Local
 (defvar my:distrib-id nil)
@@ -1456,42 +1461,6 @@ Call this on `flyspell-incorrect-hook'."
     (setq org-gcal-file-alist `(("de9uch1@gmail.com" . ,(expand-file-name "schedule.org" org-directory))))))
 
 ;;; Misc Packages
-;;;; twittering-mode
-(use-package twittering-mode
-  :ensure t
-  :commands twit
-  :config
-  (setq twittering-icon-mode t)                ; Show icons
-  (setq twittering-timer-interval 300)         ; Update your timeline each 300 seconds (5 minutes)
-  (setq twittering-convert-fix-size 35)
-  (setq twittering-use-master-password t)
-  (setq twittering-private-info-file (my:locate-home ".gnupg/twittering-mode.gpg"))
-  (setq twittering-icon-storage-limit t)
-  (setq twittering-icon-storage-file (expand-file-name "twmode-icon" my:d:tmp))
-  (setq twittering-connection-type-order '(wget curl urllib-http native urllib-https))
-  ;; ふぁぼるとき確認しない
-  (defun my:twittering-favorite (&optional remove)
-    (interactive "P")
-    (let ((id (get-text-property (point) 'id))
-          (text (copy-sequence (get-text-property (point) 'text)))
-          (method (if remove 'destroy-favorites 'create-favorites)))
-      (set-text-properties 0 (length text) nil text)
-      (twittering-call-api method `((id . ,id)))))
-  ;; key binding
-  (bind-keys :map twittering-mode-map
-             ("F" . my:twittering-favorite) ; "F" で fav
-             ("R" . twittering-native-retweet)) ; "R" で RT
-  ;; Default Format
-  (setq twittering-status-format-default
-        "%i %s,  %@:
- %FILL[  ]{%T // from %f%L%r%R}
-  ")
-  ;; Custom Format
-  (setq twittering-status-format
-        "%i @%s  %S %p  [%C{%y/%m/%d %H:%M:%S}]
-%FOLD[  ]{%T}
-%FILL[        ]{via: %f %r %R }")
-  (setq twittering-retweet-format " RT @%s: %t"))
 ;;;; SSH
 ;; ssh-config-mode
 (use-package ssh-config-mode
