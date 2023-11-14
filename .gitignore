@@ -16,3 +16,4 @@ transient
 *.elc
 app/
 var/
+tree-sitter/
