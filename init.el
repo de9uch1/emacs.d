@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2023-11-14
+;; Modified: 2023-11-15
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -440,26 +440,28 @@ COMP is used instead of eq when COMP is given."
          ("M-<up>" . windmove-up)
          ("M-<down>" . windmove-down)))
 ;; tree-sitter
-(use-package treesit
-  :custom
-  (treesit-font-lock-level 3)
-  :config
-  (use-package treesit-auto
-    :ensure t
-    :config
-    (setq treesit-auto-install t)
-    (global-treesit-auto-mode)))
+;; (use-package treesit
+;;   :custom
+;;   :disabled t
+;;   (treesit-font-lock-level 3)
+;;   :config
+;;   (use-package treesit-auto
+;;     :ensure t
+;;     :config
+;;     (setq treesit-auto-install t)
+;;     (global-treesit-auto-mode)))
 ;; eldoc
-(use-package eldoc-box
-  :ensure t
-  :hook (eglot-managed-mode . eldoc-box-hover-mode)
-  :custom
-  (eldoc-box-max-pixel-width 400)
-  (eldoc-box-max-pixel-height 200)
-  (eldoc-box-only-multi-line nil)
-  :config
-  (defun eldoc-box--window-side () 'left)
-  (setq eldoc-idle-delay 0.0))
+;; (use-package eldoc-box
+;;   :ensure t
+;;   :hook (eglot-managed-mode . eldoc-box-hover-mode)
+;;   :custom
+;;   (eldoc-box-max-pixel-width 400)
+;;   (eldoc-box-max-pixel-height 200)
+;;   (eldoc-box-only-multi-line nil)
+;;   :config
+;;   (defun eldoc-box--window-side () 'left)
+;;   (setq eldoc-idle-delay 0.5)
+;;   )
 
 ;;; Global Packages
 (use-package evil
@@ -631,7 +633,7 @@ COMP is used instead of eq when COMP is given."
               ("C-p" . company-select-previous))
   :custom
   (company-transformers '(company-sort-by-occurrence company-sort-by-backend-importance))
-  (company-idle-delay 0.02)
+  (company-idle-delay 0.05)
   (company-selection-wrap-around t)
   (company-minimum-prefix-length 1)
   (completion-ignore-case t)
@@ -1008,14 +1010,61 @@ Call this on `flyspell-incorrect-hook'."
 
 ;;;; LSP
 (use-package eglot
+  :disabled t
   :bind (("M-/" . xref-find-references))
   :hook
-  ((sh-base-mode c-ts-base-mode python-base-mode rust-ts-mode go-ts-mode lua-ts-mode) . eglot-ensure)
+  ((sh-base-mode c++-ts-mode python-base-mode rust-ts-mode go-ts-mode lua-ts-mode) . eglot-ensure)
   :config
   (add-to-list 'eglot-server-programs '(python-base-mode . ("pyright-langserver" "--stdio")))
-  (setq eglot-events-buffer-size 0
-        eglot-autoshutdown t)
+  (setq eglot-events-buffer-size 0)
+  (setq eglot-autoshutdown t)
   )
+(use-package lsp-mode
+  :ensure t
+  :bind (("M-." . xref-find-definitions)
+         ("M-," . xref-pop-marker-stack)
+         ("M-/" . xref-find-references))
+  :commands lsp
+  :hook ((sh-mode c++-mode rust-mode go-mode) . #'lsp)
+  :custom
+  (lsp-keymap-prefix "M-k")
+  (lsp-print-io nil)
+  (lsp-log-io nil)
+  (lsp-trace nil)
+  (lsp-server-trace nil)
+  (lsp-print-performance nil)
+  (lsp-use-plists t)
+  (lsp-enable-completion-at-point t)
+  (lsp-response-timeout 5)
+  (lsp-idle-delay 0.5)
+  (lsp-prefer-flymake nil)
+  (lsp-prefer-capf t)
+  (lsp-enable-snippet t)
+  (lsp-session-file (expand-file-name "lsp-session-v1" my:d:tmp))
+  (lsp-server-install-dir (expand-file-name "lsp" my:d:tmp))
+  (lsp-rust-server 'rust-analyzer)
+  :config
+  (setq lsp-restart 'auto-restart)
+  (setq lsp-completion-provider :capf)
+  (setq lsp-document-sync-method lsp--sync-incremental)
+  (use-package company-capf
+    :after (company lsp-mode)
+    :config
+    (push 'company-capf company-backends))
+  (use-package lsp-ui
+    :ensure t
+    :hook (lsp-mode . lsp-ui-mode)
+    :custom
+    (lsp-ui-doc-enable t)
+    (lsp-ui-doc-show-with-cursor t)
+    (lsp-ui-doc-position 'top)
+    (lsp-ui-doc-header t)
+    (lsp-ui-doc-include-signature t)
+    (lsp-ui-doc-max-width 100)
+    (lsp-ui-doc-max-height 50)
+    (lsp-ui-doc-use-childframe t)
+    (lsp-ui-doc-use-webkit nil)
+    (lsp-ui-doc-alignment 'frame)))
 
 ;;;; C, C++
 ;; (use-package ccls
@@ -1023,6 +1072,14 @@ Call this on `flyspell-incorrect-hook'."
 ;;   :ensure t
 ;;   :config
 ;;   (setq ccls-executable (executable-find "ccls")))
+;; (setq treesit-language-source-alist
+;;       '((cpp "https://github.com/tree-sitter/tree-sitter-cpp")
+;;         (c "https://github.com/tree-sitter/tree-sitter-c")))
+;; (setq treesit-load-name-override-list
+;;       '((c++ "libtree-sitter-cpp")))
+;; (add-to-list 'major-mode-remap-alist '(c-mode . c-ts-mode))
+;; (add-to-list 'major-mode-remap-alist '(c++-mode . c++-ts-mode))
+;; (add-to-list 'major-mode-remap-alist '(c-or-c++-mode . c-or-c++-ts-mode))
 (push (cons "\\.cu$" 'c++-ts-mode) auto-mode-alist)
 (push (cons "\\.cuh$" 'c++-ts-mode) auto-mode-alist)
 
@@ -1034,9 +1091,10 @@ Call this on `flyspell-incorrect-hook'."
    ("\.\(l\|ll\)$" . flex-mode)))
 
 ;;;; Rust
-;; (use-package rust-mode
-;;   :ensure t
-;;   :custom (rust-format-on-save t))
+(use-package rust-mode
+  :disabled t
+  :ensure t
+  :custom (rust-format-on-save t))
 (use-package cargo
   :ensure t
   :hook (rust-mode . cargo-minor-mode))
@@ -1062,7 +1120,10 @@ Call this on `flyspell-incorrect-hook'."
   (("make.conf" . sh-ts-mode)))
 
 ;;;; YAML
-(setq yaml-indent-offset 4)
+(use-package yaml-mode
+  :ensure t
+  :custom
+  (yaml-indent-offset 4))
 
 ;;;; TeX
 (use-package yatex
@@ -1209,6 +1270,28 @@ Call this on `flyspell-incorrect-hook'."
   :hook (enh-ruby-mode . inf-ruby-minor-mode))
 
 ;;;; python
+;; python-mode
+(use-package python-mode
+  :ensure t
+  :config
+  (push '("Pyakefile" . python-mode) auto-mode-alist)
+  (setq py-outline-minor-mode-p nil)
+  (setq py-current-defun-show t)
+  (setq py-jump-on-exception nil)
+  (setq py-current-defun-delay 1000))
+;; lsp-pyright
+(use-package lsp-pyright
+    ;; npm install -g pyright
+    :ensure t
+    :config
+    (dolist
+        (exclude-dirs
+         `("[/\\\\]\\.venv\\'"
+           "[/\\\\]\\.cache\\'"
+           "[/\\\\]\\.mypy_cache\\'"
+           "[/\\\\]__pycache__\\'"))
+      (push exclude-dirs lsp-file-watch-ignored))
+    (add-hook 'python-mode-hook #'(lambda () (lsp-deferred))))
 ;; poetry
 (use-package poetry
   :quelpa (poetry :fetcher github :repo cybniv/poetry.el)
@@ -1232,7 +1315,11 @@ Call this on `flyspell-incorrect-hook'."
   (message "Formatted."))
 (bind-keys :map python-base-mode-map
            ("C-c f" . python-formatter)
+           ("C-c C-f" . python-formatter)
+           :map python-mode-map
+           ("C-c f" . python-formatter)
            ("C-c C-f" . python-formatter))
+
 (defvar py-auto-format nil)
 (defun toggle-py-auto-format ()
   (interactive)
