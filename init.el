@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2023-11-15
+;; Modified: 2024-01-13
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -337,6 +337,7 @@ COMP is used instead of eq when COMP is given."
 ;;  PATH -- exec-path-from-shell
 (use-package exec-path-from-shell
   :ensure t
+  :if window-system
   :config
   (exec-path-from-shell-initialize))
 ;; transparent-mode
@@ -771,6 +772,7 @@ COMP is used instead of eq when COMP is given."
        (my:path-exists? "/usr/share/migemo/migemo-dict")))
   (migemo-regex-dictionary nil)
   (migemo-user-dictionary nil)
+  (migemo-isearch-min-length 3)
   (migemo-options '("-q" "--emacs"))
   :config
   (migemo-init))
@@ -1143,6 +1145,7 @@ Call this on `flyspell-incorrect-hook'."
 ;; PDF
 (use-package pdf-tools
   :ensure t
+  :if window-system
   :mode
   (("\\.pdf$" . pdf-view-mode))
   :custom
@@ -1195,79 +1198,79 @@ Call this on `flyspell-incorrect-hook'."
 
 ;;;; Ruby
 ;; enh-ruby-mode
-(use-package enh-ruby-mode
-  :ensure t
-  :if (executable-find "ruby")
-  :mode
-  (("\\.rb$" . enh-ruby-mode)
-   ("\\.rake$" . enh-ruby-mode)
-   ("\\.cap$" . enh-ruby-mode)
-   ("config.ru$" . enh-ruby-mode)
-   ("Rakefile$" . enh-ruby-mode)
-   ("Capfile$" . enh-ruby-mode)
-   ("Gemfile$" . enh-ruby-mode))
-  :config
-  (add-to-list 'interpreter-mode-alist '("ruby" . enh-ruby-mode))
-  (defun my:ruby-mode-hook-function ()
-    (setq enh-ruby-deep-indent-paren nil)
-    (setq enh-ruby-deep-indent-paren-style nil)
-    (setq enh-ruby-use-encoding-map nil)
-    (lambda () (ruby-electric-mode t))
-    (setq ruby-electric-expand-delimiters-list nil)
-    (lambda () (ruby-block-mode t)
-      (setq ruby-block-highlight-toggle t)))
-  (add-hook 'enh-ruby-mode-hook 'my:ruby-mode-hook-function)
-  ;; 保存時にmagic commentを追加しないようにする
-  (defadvice enh-ruby-mode-set-encoding (around stop-enh-ruby-mode-set-encoding)
-    "If enh-ruby-not-insert-magic-comment is true, stops enh-ruby-mode-set-encoding."
-    (if (and (boundp 'enh-ruby-not-insert-magic-comment)
-             (not enh-ruby-not-insert-magic-comment))
-        ad-do-it))
-  (ad-activate 'enh-ruby-mode-set-encoding)
-  (setq-default enh-ruby-not-insert-magic-comment t))
-;; robe
-(use-package robe
-  :ensure t
-  :ensure-system-package (pry . "gem install pry")
-  :if (executable-find "pry")
-  :hook ((enh-ruby-mode . robe-mode)))
-;; rubocop, ruby-lint
-(use-package rubocop
-  :ensure t
-  :ensure-system-package ((rubocop . "gem install rubocop")
-                          (ruby-lint . "gem install ruby-lint"))
-  :if (executable-find "rubocop")
-  :hook (enh-ruby-mode . rubocop-mode)
-  :config
-  ;; definition for flycheck
-  (flycheck-define-checker ruby-rubylint
-    "A Ruby syntax and style checker using the rubylint tool."
-    :command ("ruby-lint" source)
-    :error-patterns
-    ((warning line-start
-              (file-name) ":" line ":" column ": " (or "C" "W") ": " (message)
-              line-end)
-     (error line-start
-            (file-name) ":" line ":" column ": " (or "E" "F") ": " (message)
-            line-end))
-    :modes (enh-ruby-mode ruby-mode))
-  (flycheck-define-checker ruby-rubocop
-    "A Ruby syntax and style checker using the RuboCop tool."
-    :command ("rubocop" "--format" "emacs" "--silent"
-              (config-file "--config" flycheck-rubocoprc)
-              source)
-    :error-patterns
-    ((warning line-start
-              (file-name) ":" line ":" column ": " (or "C" "W") ": " (message)
-              line-end)
-     (error line-start
-   	        (file-name) ":" line ":" column ": " (or "E" "F") ": " (message)
-            line-end))
-    :modes (enh-ruby-mode motion-mode)))
-;; inf-ruby
-(use-package inf-ruby
-  :defer t
-  :hook (enh-ruby-mode . inf-ruby-minor-mode))
+;; (use-package enh-ruby-mode
+;;   :ensure t
+;;   :if (executable-find "ruby")
+;;   :mode
+;;   (("\\.rb$" . enh-ruby-mode)
+;;    ("\\.rake$" . enh-ruby-mode)
+;;    ("\\.cap$" . enh-ruby-mode)
+;;    ("config.ru$" . enh-ruby-mode)
+;;    ("Rakefile$" . enh-ruby-mode)
+;;    ("Capfile$" . enh-ruby-mode)
+;;    ("Gemfile$" . enh-ruby-mode))
+;;   :config
+;;   (add-to-list 'interpreter-mode-alist '("ruby" . enh-ruby-mode))
+;;   (defun my:ruby-mode-hook-function ()
+;;     (setq enh-ruby-deep-indent-paren nil)
+;;     (setq enh-ruby-deep-indent-paren-style nil)
+;;     (setq enh-ruby-use-encoding-map nil)
+;;     (lambda () (ruby-electric-mode t))
+;;     (setq ruby-electric-expand-delimiters-list nil)
+;;     (lambda () (ruby-block-mode t)
+;;       (setq ruby-block-highlight-toggle t)))
+;;   (add-hook 'enh-ruby-mode-hook 'my:ruby-mode-hook-function)
+;;   ;; 保存時にmagic commentを追加しないようにする
+;;   (defadvice enh-ruby-mode-set-encoding (around stop-enh-ruby-mode-set-encoding)
+;;     "If enh-ruby-not-insert-magic-comment is true, stops enh-ruby-mode-set-encoding."
+;;     (if (and (boundp 'enh-ruby-not-insert-magic-comment)
+;;              (not enh-ruby-not-insert-magic-comment))
+;;         ad-do-it))
+;;   (ad-activate 'enh-ruby-mode-set-encoding)
+;;   (setq-default enh-ruby-not-insert-magic-comment t))
+;; ;; robe
+;; (use-package robe
+;;   :ensure t
+;;   :ensure-system-package (pry . "gem install pry")
+;;   :if (executable-find "pry")
+;;   :hook ((enh-ruby-mode . robe-mode)))
+;; ;; rubocop, ruby-lint
+;; (use-package rubocop
+;;   :ensure t
+;;   :ensure-system-package ((rubocop . "gem install rubocop")
+;;                           (ruby-lint . "gem install ruby-lint"))
+;;   :if (executable-find "rubocop")
+;;   :hook (enh-ruby-mode . rubocop-mode)
+;;   :config
+;;   ;; definition for flycheck
+;;   (flycheck-define-checker ruby-rubylint
+;;     "A Ruby syntax and style checker using the rubylint tool."
+;;     :command ("ruby-lint" source)
+;;     :error-patterns
+;;     ((warning line-start
+;;               (file-name) ":" line ":" column ": " (or "C" "W") ": " (message)
+;;               line-end)
+;;      (error line-start
+;;             (file-name) ":" line ":" column ": " (or "E" "F") ": " (message)
+;;             line-end))
+;;     :modes (enh-ruby-mode ruby-mode))
+;;   (flycheck-define-checker ruby-rubocop
+;;     "A Ruby syntax and style checker using the RuboCop tool."
+;;     :command ("rubocop" "--format" "emacs" "--silent"
+;;               (config-file "--config" flycheck-rubocoprc)
+;;               source)
+;;     :error-patterns
+;;     ((warning line-start
+;;               (file-name) ":" line ":" column ": " (or "C" "W") ": " (message)
+;;               line-end)
+;;      (error line-start
+;;    	        (file-name) ":" line ":" column ": " (or "E" "F") ": " (message)
+;;             line-end))
+;;     :modes (enh-ruby-mode motion-mode)))
+;; ;; inf-ruby
+;; (use-package inf-ruby
+;;   :defer t
+;;   :hook (enh-ruby-mode . inf-ruby-minor-mode))
 
 ;;;; python
 ;; python-mode
