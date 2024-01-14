@@ -173,6 +173,31 @@ COMP is used instead of eq when COMP is given."
 (setq custom-file (my:locate-user-emacs-file "custom.el"))
 ;; (load custom-file t)
 
+;;;; Font
+;; Fontset -- Cica: https://github.com/miiton/Cica
+(when window-system
+  (let* ((fontname "Cica")
+         (fontsize 16))
+    (set-face-attribute 'default nil :family fontname :height 120)
+    (set-fontset-font nil 'ascii (font-spec :family fontname :size fontsize) nil 'append)
+    (set-fontset-font nil 'japanese-jisx0213.2004-1 (font-spec :family fontname) nil 'append))
+  (setq initial-frame-alist default-frame-alist))
+;; nerd-icons
+(use-package nerd-icons
+  :ensure t
+  :custom
+  (nerd-icons-font-family "Symbols Nerd Font Mono")
+  (nerd-icons-scale-factor 0.9))
+(use-package nerd-icons-completion
+  :ensure t
+  :config
+  (my:enable-mode nerd-icons-completion-mode))
+(use-package nerd-icons-dired
+  :ensure t
+  :hook (dired-mode . nerd-icons-dired-mode))
+(use-package nerd-icons-ibuffer
+  :ensure t
+  :hook (ibuffer-mode . nerd-icons-ibuffer-mode))
 ;;; Theme
 ;;;; Color Theme
 (use-package doom-themes
@@ -203,95 +228,6 @@ COMP is used instead of eq when COMP is given."
   :ensure t
   :hook
   ((neotree-mode imenu-list-minor-mode) . hide-mode-line-mode))
-;;;; Font
-;; nerd-icons
-(use-package nerd-icons
-  :ensure t
-  :custom
-  (nerd-icons-font-family "Symbols Nerd Font Mono")
-  (nerd-icons-scale-factor 0.9)
-  ;; :config
-  ;; (add-to-list 'face-font-rescale-alist '("Symbols Nerd Font Mono" . 0.9))
-  ;; (add-to-list 'face-font-rescale-alist '(".*icons.*" . 0.9))
-  ;; (add-to-list 'face-font-rescale-alist '(".*FontAwesome.*" . 0.9))
-  )
-(use-package nerd-icons-completion
-  :ensure t
-  :config
-  (my:enable-mode nerd-icons-completion-mode))
-(use-package nerd-icons-dired
-  :ensure t
-  :hook (dired-mode . nerd-icons-dired-mode))
-
-;; all-the-icons
-;; (use-package all-the-icons
-;;   :ensure t
-;;   :custom
-;;   (all-the-icons-scale-factor 1.0)
-;;   :config
-;;   (use-package all-the-icons-dired
-;;     :ensure t
-;;     :hook (dired-mode . all-the-icons-dired-mode))
-;;   (use-package all-the-icons-ibuffer
-;;     :ensure t
-;;     :hook (after-init . all-the-icons-ibuffer-mode)))
-;; icons-in-terminal.el -- for non-GUI
-;; (use-package all-the-icons-in-terminal
-;;   :quelpa (all-the-icons-in-terminal :fetcher github :repo uwabami/isfit-plus :files (:defaults "data"))
-;;   :if (not window-system)
-;;   :after all-the-icons
-;;   :custom
-;;   (icons-in-terminal-scale-factor 1.0)
-;;   :config
-;;   (defalias #'all-the-icons-insert #'icons-in-terminal-insert)
-;;   (defalias #'all-the-icons-insert-faicon #'icons-in-terminal-insert-faicon)
-;;   (defalias #'all-the-icons-insert-fileicon #'icons-in-terminal-insert-fileicon)
-;;   (defalias #'all-the-icons-insert-material #'icons-in-terminal-insert-material)
-;;   (defalias #'all-the-icons-insert-octicon #'icons-in-terminal-insert-octicon)
-;;   (defalias #'all-the-icons-insert-wicon #'icons-in-terminal-insert-wicon)
-
-;;   ;; (defalias #'all-the-icons-icon-for-dir #'icons-in-terminal-icon-for-dir)
-;;   (defalias #'all-the-icons-icon-for-dir-with-chevron #'icons-in-terminal-icon-for-dir)
-;;   (defalias #'all-the-icons-icon-for-file #'icons-in-terminal-icon-for-file)
-;;   (defalias #'all-the-icons-icon-for-mode #'icons-in-terminal-icon-for-mode)
-;;   (defalias #'all-the-icons-icon-for-url #'icons-in-terminal-icon-for-url)
-
-;;   (defalias #'all-the-icons-icon-family #'icons-in-terminal-icon-family)
-;;   (defalias #'all-the-icons-icon-family-for-buffer #'icons-in-terminal-icon-family-for-buffer)
-;;   (defalias #'all-the-icons-icon-family-for-file #'icons-in-terminal-icon-family-for-file)
-;;   (defalias #'all-the-icons-icon-family-for-mode #'icons-in-terminal-icon-family-for-mode)
-;;   (defalias #'all-the-icons-icon-for-buffer #'icons-in-terminal-icon-for-buffer)
-
-;;   (defalias #'all-the-icons-faicon #'icons-in-terminal-faicon)
-;;   (defalias #'all-the-icons-octicon #'icons-in-terminal-octicon)
-;;   (defalias #'all-the-icons-fileicon #'icons-in-terminal-fileicon)
-;;   (defalias #'all-the-icons-material #'icons-in-terminal-material)
-;;   (defalias #'all-the-icons-wicon #'icons-in-terminal-wicon)
-
-;;   (defalias 'icons-in-terminal-dir-icon-alist 'icons-in-terminal-dir-icon-spec)
-;;   (defalias 'icons-in-terminal-weather-icon-alist 'icons-in-terminal-weather-icon-spec)
-
-;;   (defalias 'all-the-icons-default-adjust 'icons-in-terminal-default-adjust)
-;;   (defalias 'all-the-icons-color-icons 'icons-in-terminal-color-icons)
-;;   (defalias 'all-the-icons-scale-factor 'icons-in-terminal-scale-factor)
-;;   (defalias 'all-the-icons-icon-alist 'icons-in-terminal-icon-alist)
-;;   (defalias 'all-the-icons-dir-icon-alist 'icons-in-terminal-dir-icon-alist)
-;;   (defalias 'all-the-icons-weather-icon-alist 'icons-in-terminal-weather-icon-alist)
-;;   )
-;; Fontset -- Cica: https://github.com/miiton/Cica
-(when window-system
-  (let* ((fontname "Cica")
-         (fontsize 16))
-    (set-face-attribute 'default nil :family fontname :height 120)
-    (set-fontset-font nil 'ascii (font-spec :family fontname :size fontsize) nil 'append)
-    (set-fontset-font nil 'japanese-jisx0213.2004-1 (font-spec :family fontname) nil 'append))
-  ;; (use-package all-the-icons
-  ;;   :config
-  ;;   (unless (x-list-fonts "all-the-icons")
-  ;;     (all-the-icons-install-fonts t))
-  ;;   (add-to-list 'face-font-rescale-alist '(".*icons.*" . 0.9))
-  ;;   (add-to-list 'face-font-rescale-alist '(".*FontAwesome.*" . 0.9)))
-  (setq initial-frame-alist default-frame-alist))
 ;;;; Misc.
 (unless early-init-compat
   ;; disable menu-bar, tool-bar, scroll-bar
@@ -319,6 +255,9 @@ COMP is used instead of eq when COMP is given."
   (progn
     (my:enable-mode global-linum-mode)
     (setq linum-format "%5d ")))
+(custom-set-faces
+ '(line-number ((t (:inherit default :slant normal :foreground "#6272a4" :weight normal))))
+ '(line-number-current-line ((t (:inherit (hl-line default) :foreground "#f8f8f2" :slant normal :weight normal)))))
 ;; highlight line
 (my:enable-mode global-hl-line-mode)
 (add-hook
@@ -533,7 +472,6 @@ COMP is used instead of eq when COMP is given."
   (ivy-height 30)
   (ivy-wrap t)
   (ivy-format-functions-alist '((t . ivy-format-function-arrow)))
-  ;; (ivy-count-format (concat (all-the-icons-faicon "sort-amount-asc") " (%d/%d) "))
   (ivy-count-format (concat (nerd-icons-faicon "nf-fa-sort_amount_asc") " (%d/%d) "))
   :config
   (setq ivy-re-builders-alist '((t . ivy--regex-ignore-order)))
@@ -551,19 +489,6 @@ COMP is used instead of eq when COMP is given."
     :after (nerd-icons ivy-rich)
     :config
     (my:enable-mode nerd-icons-ivy-rich-mode))
-
-  ;; all-the-icons-ivy
-  ;; (use-package all-the-icons-ivy
-  ;;   :ensure t
-  ;;   :disabled t
-  ;;   :after all-the-icons
-  ;;   :config
-  ;;   (all-the-icons-ivy-setup))
-  ;; (use-package all-the-icons-ivy-rich
-  ;;   :ensure t
-  ;;   :after (all-the-icons ivy-rich)
-  ;;   :config
-  ;;   (all-the-icons-ivy-rich-mode))
   ;; ivy-posframe
   (use-package ivy-posframe
     :ensure t
@@ -679,7 +604,7 @@ COMP is used instead of eq when COMP is given."
     :no-require t
     :hook (company-mode . company-box-mode)
     :config
-    (defvar company-box-icons-nerd-icons
+    (setq company-box-icons-nerd-icons
     `((Unknown . ,(nerd-icons-faicon "nf-fa-code"))
       (Text . ,(nerd-icons-faicon "nf-fa-text_width"))
       (Method . ,(nerd-icons-faicon "nf-fa-cube"))
