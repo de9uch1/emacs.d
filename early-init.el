@@ -46,13 +46,17 @@
 ;; Avoid garbage collection in initialize
 (setq gc-cons-percentage 1.0
       gc-cons-threshold most-positive-fixnum
-      read-process-output-max (* 64 1024 1024))
+      read-process-output-max 67108864  ; (* 64 1024 1024)
+      )
 (add-hook
  'after-init-hook
  `(lambda ()
-    (setq gc-cons-threshold (* 128 1024 1024)
+    (setq gc-cons-threshold 134217728   ; (* 128 1024 1024)
           gc-cons-percentage 0.6
-          read-process-output-max (* 16 1024 1024))) t)
+          read-process-output-max 16777216 ; (* 16 1024 1024)
+          )
+    )
+ t)
 (run-with-idle-timer 60.0 t #'garbage-collect)
 ;;; Appearance
 ;;;; Disable noisy effects
@@ -71,6 +75,7 @@
 (setq package-enable-at-startup nil)
 (setq package-quickstart nil)
 ;;;; for GUI
+(advice-add 'x-apply-session-resources :override 'ignore)
 ;; window size
 (push '(height . 72) default-frame-alist)
 (push '(width . 144) default-frame-alist)
