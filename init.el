@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2024-01-13
+;; Modified: 2024-01-14
 ;; Version: 0.0.3
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -409,18 +409,6 @@ COMP is used instead of eq when COMP is given."
 ;;     :config
 ;;     (setq treesit-auto-install t)
 ;;     (global-treesit-auto-mode)))
-;; eldoc
-;; (use-package eldoc-box
-;;   :ensure t
-;;   :hook (eglot-managed-mode . eldoc-box-hover-mode)
-;;   :custom
-;;   (eldoc-box-max-pixel-width 400)
-;;   (eldoc-box-max-pixel-height 200)
-;;   (eldoc-box-only-multi-line nil)
-;;   :config
-;;   (defun eldoc-box--window-side () 'left)
-;;   (setq eldoc-idle-delay 0.5)
-;;   )
 
 ;;; Global Packages
 (use-package evil
@@ -540,23 +528,23 @@ COMP is used instead of eq when COMP is given."
   :ensure t
   :bind (("C-^" . avy-goto-char-timer)
          ("C-]" . avy-goto-line)))
-(use-package avy-migemo
-  :ensure t
-  :bind (("C-^" . avy-migemo-goto-char-timer))
-  :init
-  (defun my:ivy-migemo-re-builder (str)
-    "Own ivy-migemo-re-build for swiper."
-    (let* ((sep " \\|\\^\\|\\.\\|\\*")
-           (splitted (--map (s-join "" it)
-                            (--partition-by (s-matches-p " \\|\\^\\|\\.\\|\\*" it)
-                                            (s-split "" str t)))))
-      (s-join "" (--map (cond ((s-equals? it " ") ".*?")
-                              ((s-matches? sep it) it)
-                              (t (migemo-get-pattern it)))
-                        splitted))))
-  (setq avy-migemo-at-full-max 4)
-  ;; (use-package avy-migemo-e.g.swiper)
-  )
+;; (use-package avy-migemo
+;;   :ensure t
+;;   :bind (("C-^" . avy-migemo-goto-char-timer))
+;;   :init
+;;   (defun my:ivy-migemo-re-builder (str)
+;;     "Own ivy-migemo-re-build for swiper."
+;;     (let* ((sep " \\|\\^\\|\\.\\|\\*")
+;;            (splitted (--map (s-join "" it)
+;;                             (--partition-by (s-matches-p " \\|\\^\\|\\.\\|\\*" it)
+;;                                             (s-split "" str t)))))
+;;       (s-join "" (--map (cond ((s-equals? it " ") ".*?")
+;;                               ((s-matches? sep it) it)
+;;                               (t (migemo-get-pattern it)))
+;;                         splitted))))
+;;   (setq avy-migemo-at-full-max 4)
+;;   ;; (use-package avy-migemo-e.g.swiper)
+;;   )
 ;; ace-window
 (use-package ace-window
   :ensure t
@@ -591,6 +579,9 @@ COMP is used instead of eq when COMP is given."
   (company-minimum-prefix-length 1)
   (completion-ignore-case t)
   (company-show-numbers t)
+  (company-dabbrev-other-buffers nil)
+  (company-dabbrev-ignore-case nil)
+  (company-dabbrev-downcase nil)
   :config
   (add-hook 'emacs-lisp-mode-hook #'(lambda () (add-to-list 'company-backends 'company-elisp)))
   (use-package company-flx
@@ -735,7 +726,30 @@ COMP is used instead of eq when COMP is given."
    ("M-b" . centaur-tabs-backward-group)
    ("C-a" . centaur-tabs-select-beg-tab)
    ("C-e" . centaur-tabs-select-end-tab)))
-
+;; eldoc
+(use-package eldoc-box
+  :ensure t
+  :if window-system
+  :hook
+  (eglot--managed-mode . eldoc-box-hover-mode)
+  ((eldoc-box-hover-mode) . centaur-tabs-local-mode)
+  :diminish (eldoc-box-hover-mode eldoc-box-hover-at-point-mode)
+  :custom
+  (eldoc-box-lighter nil)
+  (eldoc-box-max-pixel-width 500)
+  (eldoc-box-max-pixel-height 400)
+  (eldoc-box-only-multi-line t)
+  (eldoc-box-offset '(16 24 16))
+  (eldoc-box-clear-with-C-g t)
+  :custom-face
+  (eldoc-box-border ((t (:inherit posframe-border :background unspecified))))
+  (eldoc-box-body ((t (:inherit tooltip))))
+  :config
+  ;; Always retrun 'left so that eldoc-box is aligned to right.
+  (defun eldoc-box--window-side () 'left)
+  (setq eldoc-idle-delay 0.15)
+  (setf (alist-get 'left-fringe eldoc-box-frame-parameters) 8
+        (alist-get 'right-fringe eldoc-box-frame-parameters) 8))
 ;;; Text
 ;;;; migemo
 (defvar migemo-exists-p
@@ -993,17 +1007,18 @@ Call this on `flyspell-incorrect-hook'."
 
 ;;;; LSP
 (use-package eglot
-  :disabled t
+  :ensure t
   :bind (("M-/" . xref-find-references))
   :hook
-  ((sh-base-mode c++-ts-mode python-base-mode rust-ts-mode go-ts-mode lua-ts-mode) . eglot-ensure)
+  ((sh-base-mode c++-ts-mode rust-ts-mode go-ts-mode lua-ts-mode) . eglot-ensure)
+  (python-base-mode . (lambda () (poetry-track-virtualenv) (eglot-ensure)))
   :config
   (add-to-list 'eglot-server-programs '(python-base-mode . ("pyright-langserver" "--stdio")))
   (setq eglot-events-buffer-size 0)
-  (setq eglot-autoshutdown t)
-  )
+  (setq eglot-autoshutdown t))
 (use-package lsp-mode
   :ensure t
+  :disabled t
   :bind (("M-." . xref-find-definitions)
          ("M-," . xref-pop-marker-stack)
          ("M-/" . xref-find-references))
@@ -1267,7 +1282,11 @@ Call this on `flyspell-incorrect-hook'."
 (use-package lsp-pyright
     ;; npm install -g pyright
     :ensure t
+    :disabled t
+    :custom
+    (lsp-pyright-multi-root nil)
     :config
+    ;; (setq lsp-pyright-multi-root nil)
     (dolist
         (exclude-dirs
          `("[/\\\\]\\.venv\\'"
@@ -1275,13 +1294,23 @@ Call this on `flyspell-incorrect-hook'."
            "[/\\\\]\\.mypy_cache\\'"
            "[/\\\\]__pycache__\\'"))
       (push exclude-dirs lsp-file-watch-ignored))
-    (add-hook 'python-mode-hook #'(lambda () (lsp-deferred))))
+    (add-hook
+     'python-mode-hook
+     #'(lambda ()
+         (progn
+           (poetry-tracking-mode)
+           (poetry-track-virtualenv)
+           (setq lsp-pyright-venv-path python-shell-virtualenv-root)
+           (setq lsp-pyright-venv-directory python-shell-virtualenv-root)
+           (lsp-deferred)))))
 ;; poetry
 (use-package poetry
-  :quelpa (poetry :fetcher github :repo cybniv/poetry.el)
-  :hook (python-base-mode . poetry-tracking-mode)
+  ;; :quelpa (poetry :fetcher github :repo cybniv/poetry.el)
+  ;; :hook (python-base-mode . poetry-tracking-mode)
   :custom
-  (poetry-tracking-strategy 'projectile))
+  (poetry-tracking-strategy 'projectile)
+  :config
+  (my:enable-mode poetry-tracking-mode))
 ;; python-black
 (use-package python-black
   :ensure t)
