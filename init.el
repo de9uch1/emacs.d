@@ -43,7 +43,7 @@
             (message "init time: %.1f msec"
                      (* (float-time (time-subtract after-init-time before-init-time)) 1000))))
 ;;;; Tuning and Speed Up:
-(defconst early-init-compat (version<= "27.1" emacs-version))
+(defconst early-init-compat (eval-when-compile (version<= "27.1" emacs-version)))
 (unless early-init-compat
   ;; Disable magic file name at initialize
   (defconst my:saved-file-name-handler-alist file-name-handler-alist)
@@ -73,16 +73,16 @@
           native-comp-async-jobs-number 4
           native-comp-async-report-warnings-errors 'silent))
 (setq package-native-compile t)
-;; (native-compile-async (locate-user-emacs-file "early-init.el"))
-;; (native-compile-async (locate-user-emacs-file "init.el"))
+(native-compile-async (locate-user-emacs-file "early-init.el"))
+(native-compile-async (locate-user-emacs-file "init.el"))
 
 ;;; System Local
-(defvar my:distrib-id nil)
-(defvar my:gentoo-p nil)
-(eval-when-compile
-  (when (file-exists-p "/etc/gentoo-release")
-    (setq my:distrib-id "gentoo")
-    (setq my:gentoo-p t)))
+;; (defvar my:distrib-id nil)
+;; (defvar my:gentoo-p nil)
+;; (eval-and-compile
+;;   (when (file-exists-p "/etc/gentoo-release")
+;;     (setq my:distrib-id "gentoo")
+;;     (setq my:gentoo-p t)))
 
 ;;; My Functions and Macros -- prefix "my:"
 (defmacro my:path-exists? (path)
@@ -121,30 +121,34 @@
 ;; for ``emacs -q -l .emacs''
 (when load-file-name
   (setq user-emacs-directory (file-name-directory load-file-name)))
-(defconst my:d:tmp (my:locate-user-emacs-file "tmp"))
-(defconst my:d:share (my:locate-user-emacs-file "share"))
+(eval-and-compile (defconst my:d:tmp (my:locate-user-emacs-file "tmp")))
+(eval-and-compile (defconst my:d:share (my:locate-user-emacs-file "share")))
 ;; Nextcloud
 (defconst my:d:nextcloud
-  (let ((d (my:locate-home "Nextcloud")))
-    (if (file-exists-p d)
-        d
-      user-emacs-directory)))
+  (eval-when-compile
+    (let ((d (my:locate-home "Nextcloud")))
+      (if (file-exists-p d)
+          d
+        user-emacs-directory))))
 
 ;;; Package Management
 ;;;; package.el
-(require 'package nil t)
 (setq
  package-archives
  '(("melpa" . "https://melpa.org/packages/")
    ("melpa-stable" . "https://stable.melpa.org/packages/")
    ("gnu" . "https://elpa.gnu.org/packages/")))
-(package-initialize)
-(unless (package-installed-p 'use-package)
-  (package-refresh-contents)
-  (package-install 'use-package))
+(eval-and-compile
+  (require 'package nil t)
+  (package-initialize))
 ;;;; use-package.el
-(unless (require 'use-package nil t)
-  (defmacro use-package (&rest args)))
+(eval-when-compile
+  (unless (package-installed-p 'use-package)
+    (package-refresh-contents)
+    (package-install 'use-package))
+  (unless
+      (require 'use-package nil t)
+    (defmacro use-package (&rest args))))
 (use-package diminish
   :ensure t)
 (use-package bind-key
@@ -239,7 +243,7 @@
 (setq-default truncate-lines t)
 (add-hook 'org-mode-hook (lambda () (setq-local truncate-lines nil)))
 ;; display line number
-(if (version<= "26.1" emacs-version)
+(if (eval-when-compile (version<= "26.1" emacs-version))
     (progn
       (global-display-line-numbers-mode)
       (setq-default display-line-numbers-width 4))
@@ -254,9 +258,9 @@
 (add-hook
  'doc-view-mode-hook
  (lambda ()
-     (progn
-       (my:disable-mode linum-mode)
-       (my:disable-mode hl-line-mode))))
+   (progn
+     (my:disable-mode linum-mode)
+     (my:disable-mode hl-line-mode))))
 ;; show paren
 (use-package paren
   :ensure nil
@@ -285,12 +289,12 @@
   :config
   (exec-path-from-shell-initialize))
 ;; transparent-mode
-(use-package tp-mode
-  :disabled t
-  :if window-system
-  :load-path "share/tp-mode"
-  :config
-  (tp-mode 95))
+;; (use-package tp-mode
+;;   :disabled t
+;;   :if window-system
+;;   :load-path "share/tp-mode"
+;;   :config
+;;   (tp-mode 95))
 ;; Bell
 ;; Alternative flash the screen
 (setq visible-bell nil)
@@ -303,8 +307,7 @@
  ("C-m" . newline-and-indent)
  ("C-h" . delete-backward-char)) ; C-h -> Backspace
 ;; .el > .elc
-(when (boundp 'load-prefer-newer)
-  (setq load-prefer-newer t))
+(setq load-prefer-newer t)
 ;; scroll for one line
 (setq scroll-conservatively 35
       scroll-margin 0
@@ -335,11 +338,6 @@
 (use-package time-stamp
   :commands (time-stamp)
   :hook (before-save . #'time-stamp))
-;; Emacs Server
-(use-package server
-  :config
-  (unless (server-running-p)
-    (server-start)))
 ;; tramp
 (use-package tramp
   :defer t
@@ -638,7 +636,7 @@
 
 ;;;; Tab
 ;; Tab-bar-mode or Elscreen
-(defvar tab-bar-p (version<= "27" emacs-version))
+(defvar tab-bar-p (eval-when-compile (version<= "27" emacs-version)))
 (use-package tab-bar
   :if tab-bar-p
   :hook (after-init . tab-bar-mode)
@@ -702,7 +700,7 @@
   :ensure t
   :if window-system
   :hook
-  (eglot--managed-mode . eldoc-box-hover-mode)
+  (eglot-managed-mode . eldoc-box-hover-mode)
   ((eldoc-box-hover-mode) . centaur-tabs-local-mode)
   :diminish (eldoc-box-hover-mode eldoc-box-hover-at-point-mode)
   :custom
@@ -723,19 +721,16 @@
         (alist-get 'right-fringe eldoc-box-frame-parameters) 8))
 ;;; Text
 ;;;; migemo
-(defvar migemo-exists-p
-  (eval-when-compile
-    (and (executable-find "cmigemo")
-         (locate-library "migemo"))))
 (use-package migemo
   :ensure t
-  :if migemo-exists-p
+  :if (eval-when-compile (executable-find "cmigemo"))
   :custom
   (migemo-coding-system 'utf-8-unix)
   (migemo-command "cmigemo")
   (migemo-dictionary
-   (or (my:path-exists? "/usr/share/cmigemo/utf-8/migemo-dict")
-       (my:path-exists? "/usr/share/migemo/migemo-dict")))
+   (eval-when-compile
+     (or (my:path-exists? "/usr/share/cmigemo/utf-8/migemo-dict")
+         (my:path-exists? "/usr/share/migemo/migemo-dict"))))
   (migemo-regex-dictionary nil)
   (migemo-user-dictionary nil)
   (migemo-isearch-min-length 3)
@@ -773,19 +768,19 @@
   ;; 辞書アップデート
   (setq skk-update-jisyo-function
         (lambda (word &optional purge)
-            (if purge
-                (skk-update-jisyo-original word purge)
-              (let* ((pair (skk-treat-strip-note-from-word word))
-                     (cand (car pair))
-                     (note (cdr pair)))
-                (when (and (stringp note)
-                           (> (length note) 8))
-                  ;; 注釈が 8 文字より長かったら注釈を消して登録する
-                  (setq note nil))
-                (setq word (if (stringp note)
-                               (concat cand ";" note)
-                             cand))
-                (skk-update-jisyo-original word)))))
+          (if purge
+              (skk-update-jisyo-original word purge)
+            (let* ((pair (skk-treat-strip-note-from-word word))
+                   (cand (car pair))
+                   (note (cdr pair)))
+              (when (and (stringp note)
+                         (> (length note) 8))
+                ;; 注釈が 8 文字より長かったら注釈を消して登録する
+                (setq note nil))
+              (setq word (if (stringp note)
+                             (concat cand ";" note)
+                           cand))
+              (skk-update-jisyo-original word)))))
   ;; Enter キーで確定 (改行しない)
   (setq skk-egg-like-newline t)
   ;; 句読点にコンマとピリオドを使用する
@@ -882,9 +877,9 @@ Call this on `flyspell-incorrect-hook'."
   (add-hook
    'yas-minor-mode
    (lambda ()
-       (setq-local
-        company-backends
-        (mapcar #'company-mode/backend-with-yas company-backends)))))
+     (setq-local
+      company-backends
+      (mapcar #'company-mode/backend-with-yas company-backends)))))
 
 ;;; VCS -- Git
 (setq find-file-visit-truename t)
@@ -944,7 +939,7 @@ Call this on `flyspell-incorrect-hook'."
 
   (use-package counsel-projectile
     :ensure t
-    :if (featurep 'counsel)
+    :after (counsel projectile)
     :bind
     (:map projectile-mode-map
           ("M-p" . projectile-command-map)
@@ -1081,11 +1076,11 @@ Call this on `flyspell-incorrect-hook'."
 ;;;; shell script
 (use-package fish-mode
   :ensure t
-  :defer t)
-(use-package ebuild-mode
-  :if my:gentoo-p
-  :mode
-  (("make.conf" . sh-ts-mode)))
+  :mode (("\\.fish$" . fish-mode)))
+;; (use-package ebuild-mode
+;;   :if my:gentoo-p
+;;   :mode
+;;   (("make.conf" . sh-ts-mode)))
 
 ;;;; YAML
 (use-package yaml-mode
@@ -1126,8 +1121,7 @@ Call this on `flyspell-incorrect-hook'."
 ;;;; Lisp -- Common Lisp, Scheme
 ;;;;; Common Lisp
 ;; SLIME
-(defvar quicklisp-directory
-  (my:path-exists? (my:locate-home "quicklisp")))
+(defvar quicklisp-directory (eval-when-compile (my:path-exists? (my:locate-home "quicklisp"))))
 (use-package slime
   :if quicklisp-directory
   :commands (slime)
@@ -1139,20 +1133,21 @@ Call this on `flyspell-incorrect-hook'."
     (slime-setup '(slime-fancy slime-company)))
   (add-hook 'lisp-mode-hook #'lisp-hook))
 ;;;;; Scheme
-(when (executable-find "gosh")
-  (setq scheme-program-name "gosh -i")
-  (defun scheme-other-window ()
-    "Run Gauche on other window"
-    (interactive)
-    (split-window-horizontally (/ (frame-width) 2))
-    (let ((buf-name (buffer-name (current-buffer))))
-      (scheme-mode)
-      (switch-to-buffer-other-window
-       (get-buffer-create "*scheme*"))
-      (run-scheme scheme-program-name)
-      (switch-to-buffer-other-window
-       (get-buffer-create buf-name))))
-  (bind-key "C-c S" 'scheme-other-window))
+(eval-and-compile
+  (when (executable-find "gosh")
+    (setq scheme-program-name "gosh -i")
+    (defun scheme-other-window ()
+      "Run Gauche on other window"
+      (interactive)
+      (split-window-horizontally (/ (frame-width) 2))
+      (let ((buf-name (buffer-name (current-buffer))))
+        (scheme-mode)
+        (switch-to-buffer-other-window
+         (get-buffer-create "*scheme*"))
+        (run-scheme scheme-program-name)
+        (switch-to-buffer-other-window
+         (get-buffer-create buf-name))))
+    (bind-key "C-c S" 'scheme-other-window)))
 
 ;;;; Web
 (use-package emmet-mode
@@ -1298,12 +1293,12 @@ Call this on `flyspell-incorrect-hook'."
   (add-hook
    'python-mode-hook
    (lambda ()
-       (progn
-         (poetry-tracking-mode)
-         (poetry-track-virtualenv)
-         (setq lsp-pyright-venv-path python-shell-virtualenv-root)
-         (setq lsp-pyright-venv-directory python-shell-virtualenv-root)
-         (lsp-deferred)))))
+     (progn
+       (poetry-tracking-mode)
+       (poetry-track-virtualenv)
+       (setq lsp-pyright-venv-path python-shell-virtualenv-root)
+       (setq lsp-pyright-venv-directory python-shell-virtualenv-root)
+       (lsp-deferred)))))
 
 (defvar py-auto-format nil)
 (defun toggle-py-auto-format ()
@@ -1388,7 +1383,7 @@ Call this on `flyspell-incorrect-hook'."
   (org-export-in-background nil)
   (org-export-async-debug t)
   :config
-  (use-package org-install)
+  ;; (use-package org-install)
   (use-package org-capture)
   (use-package org-protocol)
   (use-package ox)

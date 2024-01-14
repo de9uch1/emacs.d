@@ -6,7 +6,9 @@
 .PHONY:	all build
 
 all: build
-build: early-init.elc share/*.elc
+build: init.elc early-init.elc share/*.elc
+init.elc: init.el
+	emacs --batch -f batch-byte-compile $<
 early-init.elc: early-init.el
 	emacs --batch -f batch-byte-compile $<
 share/%.elc: share/%.el
