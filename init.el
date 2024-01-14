@@ -7,7 +7,7 @@
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
 ;; Modified: 2024-01-14
-;; Version: 0.0.3
+;; Version: 0.0.4
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
 ;; Namespace: my:
@@ -40,8 +40,8 @@
 ;; (profiler-start 'cpu)
 (add-hook 'emacs-startup-hook
           (lambda ()
-            (message "init time: %.3f sec"
-                     (float-time (time-subtract after-init-time before-init-time)))))
+            (message "init time: %.1f msec"
+                     (* (float-time (time-subtract after-init-time before-init-time)) 1000))))
 ;;;; Tuning and Speed Up:
 (defconst early-init-compat (version<= "27.1" emacs-version))
 (unless early-init-compat
@@ -63,16 +63,18 @@
             gc-cons-percentage 0.6
             read-process-output-max (* 16 1024 1024))) t)
   (run-with-idle-timer 60.0 t #'garbage-collect))
-(setq package-native-compile t)
 
 ;;;; cl-lib -- load Common Lisp library:
 (eval-when-compile (require 'cl-lib nil t))
-(eval-when-compile
-  (setq byte-compile-warnings '(not cl-functions free-vars docstrings unresolved))
-  (if (and (fboundp 'native-comp-available-p)
-           (native-comp-available-p))
-      (setq native-comp-speed 2
-            native-comp-async-report-warnings-errors 'silent)))
+(setq byte-compile-warnings '(not cl-functions free-vars docstrings unresolved))
+(if (and (fboundp 'native-comp-available-p)
+         (native-comp-available-p))
+    (setq native-comp-speed 3
+          native-comp-async-jobs-number 4
+          native-comp-async-report-warnings-errors 'silent))
+(setq package-native-compile t)
+;; (native-compile-async (locate-user-emacs-file "early-init.el"))
+;; (native-compile-async (locate-user-emacs-file "init.el"))
 
 ;;; System Local
 (defvar my:distrib-id nil)
@@ -83,13 +85,6 @@
     (setq my:gentoo-p t)))
 
 ;;; My Functions and Macros -- prefix "my:"
-(defun my:ne (x y &optional comp)
-  "Return t if X not eq Y.
-COMP is used instead of eq when COMP is given."
-  (not
-   (if comp
-       (funcall comp x y)
-     (eq x y))))
 (defmacro my:path-exists? (path)
   "Return PATH if PATH exists else nil."
   `(if (file-exists-p ,path)
@@ -138,10 +133,11 @@ COMP is used instead of eq when COMP is given."
 ;;; Package Management
 ;;;; package.el
 (require 'package nil t)
-(custom-set-variables
- '(package-archives '(("melpa" . "https://melpa.org/packages/")
-                      ("melpa-stable" . "https://stable.melpa.org/packages/")
-                      ("gnu" . "https://elpa.gnu.org/packages/"))))
+(setq
+ package-archives
+ '(("melpa" . "https://melpa.org/packages/")
+   ("melpa-stable" . "https://stable.melpa.org/packages/")
+   ("gnu" . "https://elpa.gnu.org/packages/")))
 (package-initialize)
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
@@ -149,25 +145,20 @@ COMP is used instead of eq when COMP is given."
 ;;;; use-package.el
 (unless (require 'use-package nil t)
   (defmacro use-package (&rest args)))
-(use-package use-package-ensure-system-package
-  :ensure t
-  :config
-  (setq system-packages-package-manager
-        (cond (my:gentoo-p 'emerge))))
 (use-package diminish
   :ensure t)
 (use-package bind-key
   :ensure t)
 ;;;; quelpa, quelpa-use-package
-(use-package quelpa
-  :ensure t
-  :config
-  (setq quelpa-upgrade-p nil
-        quelpa-checkout-melpa-p nil
-        quelpa-update-melpa-p nil
-        quelpa-melpa-recipe-stores nil))
-(use-package quelpa-use-package
-  :ensure t)
+;; (use-package quelpa
+;;   :ensure t
+;;   :config
+;;   (setq quelpa-upgrade-p nil
+;;         quelpa-checkout-melpa-p nil
+;;         quelpa-update-melpa-p nil
+;;         quelpa-melpa-recipe-stores nil))
+;; (use-package quelpa-use-package
+;;   :ensure t)
 
 ;;; Custom
 (setq custom-file (my:locate-user-emacs-file "custom.el"))
@@ -246,7 +237,7 @@ COMP is used instead of eq when COMP is given."
     (setq initial-frame-alist default-frame-alist)))
 ;; truncate lines
 (setq-default truncate-lines t)
-(add-hook 'org-mode-hook #'(lambda () (setq-local truncate-lines nil)))
+(add-hook 'org-mode-hook (lambda () (setq-local truncate-lines nil)))
 ;; display line number
 (if (version<= "26.1" emacs-version)
     (progn
@@ -262,7 +253,7 @@ COMP is used instead of eq when COMP is given."
 (my:enable-mode global-hl-line-mode)
 (add-hook
  'doc-view-mode-hook
- #'(lambda ()
+ (lambda ()
      (progn
        (my:disable-mode linum-mode)
        (my:disable-mode hl-line-mode))))
@@ -287,11 +278,6 @@ COMP is used instead of eq when COMP is given."
 ;; (set-language-environment 'Japanese)
 ;; (setq-default buffer-file-coding-system 'utf-8-unix)
 ;;;; Misc.
-;; load-path
-(let ((default-directory my:d:share))
-  (add-to-list 'load-path default-directory)
-  (if (fboundp 'normal-top-level-add-subdirs-to-load-path)
-      (normal-top-level-add-subdirs-to-load-path)))
 ;;  PATH -- exec-path-from-shell
 (use-package exec-path-from-shell
   :ensure t
@@ -300,7 +286,9 @@ COMP is used instead of eq when COMP is given."
   (exec-path-from-shell-initialize))
 ;; transparent-mode
 (use-package tp-mode
+  :disabled t
   :if window-system
+  :load-path "share/tp-mode"
   :config
   (tp-mode 95))
 ;; Bell
@@ -331,7 +319,7 @@ COMP is used instead of eq when COMP is given."
       nsm-settings-file (expand-file-name "network-settings.data" my:d:tmp)
       bookmark-default-file (expand-file-name "bookmarks" my:d:share))
 ;; save minibuffer history
-(my:enable-mode savehist-mode)
+(add-hook 'after-init-hook (lambda () (my:enable-mode savehist-mode)))
 (setq message-log-max 10000)
 (setq history-length t
       savehist-file (expand-file-name "history" my:d:tmp))
@@ -342,10 +330,10 @@ COMP is used instead of eq when COMP is given."
 ;; kill whole line when kill line
 (setq kill-whole-line t)
 ;; global-auto-revert-mode
-(my:enable-mode global-auto-revert-mode)
+(add-hook 'after-init-hook (lambda () (my:enable-mode global-auto-revert-mode)))
 ;; time-stamp
 (use-package time-stamp
-  :commands time-stamp
+  :commands (time-stamp)
   :hook (before-save . #'time-stamp))
 ;; Emacs Server
 (use-package server
@@ -354,6 +342,7 @@ COMP is used instead of eq when COMP is given."
     (server-start)))
 ;; tramp
 (use-package tramp
+  :defer t
   :config
   (setq tramp-default-method "ssh")
   (setq tramp-persistency-file-name (expand-file-name "tramp" my:d:tmp)))
@@ -365,17 +354,14 @@ COMP is used instead of eq when COMP is given."
       dired-isearch-filenames t         ; only match filenames
       dired-listing-switches "-alhF")
 ;; generic-x
-(use-package generic-x)
-;; save last opened place
-(use-package saveplace
-  :config
-  (setq save-place-file (expand-file-name "save-places" my:d:tmp))
-  (my:enable-mode save-place-mode))
+(use-package generic-x
+  :defer t)
+;; saveplace
+(setq save-place-file (expand-file-name "save-places" my:d:tmp))
+;; uniquify
 ;; for same name buffer
-(use-package uniquify
-  :config
-  (setq uniquify-buffer-name-style 'post-forward-angle-brackets
-        uniquify-min-dir-content 1))
+(setq uniquify-buffer-name-style 'post-forward-angle-brackets
+      uniquify-min-dir-content 1)
 ;; XClip
 (when (eq window-system 'x)
   (setq x-select-enable-clipboard t))
@@ -413,6 +399,7 @@ COMP is used instead of eq when COMP is given."
 ;;; Global Packages
 (use-package evil
   :ensure t
+  :commands (evil-mode)
   :custom
   (evil-toggle-key "M-q")
   :config
@@ -441,20 +428,13 @@ COMP is used instead of eq when COMP is given."
           ("lla" "ls -lha $*")
           ("findn" "find . -name $*")
           ("duc" "du -had1 $*"))))
-;;;; prescient.el -- simple but effective sorting and filtering for Emacs.
-(use-package prescient
-  :ensure t
-  :custom
-  (prescient-aggressive-file-save t)
-  (prescient-save-file (expand-file-name "prescient-save.el" my:d:tmp))
-  (prescient-history-length 5000)
-  :config
-  (my:enable-mode prescient-persist-mode))
+
 ;;;; counsel/ivy, swiper
 ;; ivy
 (use-package ivy
   :ensure t
   :diminish
+  :hook (prescient-persist-mode . ivy-mode)
   :custom
   (ivy-use-virtual-buffers t)
   (ivy-height 30)
@@ -488,13 +468,22 @@ COMP is used instead of eq when COMP is given."
     (my:enable-mode ivy-posframe-mode))
   (use-package ivy-prescient
     :ensure t
-    :hook (ivy-mode . ivy-prescient-mode)
+    :after prescient
     :custom
     (ivy-prescient-retain-classic-highlighting t)
     :config
     (setf (alist-get 'swiper ivy-re-builders-alist) #'my:ivy-migemo-re-builder)
     ;; (setf (alist-get t ivy-re-builders-alist) #'ivy--regex-ignore-order)
-    ))
+    )
+  )
+;;;; prescient.el -- simple but effective sorting and filtering for Emacs.
+(use-package prescient
+  :ensure t
+  :hook (after-init . prescient-persist-mode)
+  :custom
+  (prescient-aggressive-file-save t)
+  (prescient-save-file (expand-file-name "prescient-save.el" my:d:tmp))
+  (prescient-history-length 5000))
 ;; counsel
 (use-package counsel
   :ensure t
@@ -528,23 +517,6 @@ COMP is used instead of eq when COMP is given."
   :ensure t
   :bind (("C-^" . avy-goto-char-timer)
          ("C-]" . avy-goto-line)))
-;; (use-package avy-migemo
-;;   :ensure t
-;;   :bind (("C-^" . avy-migemo-goto-char-timer))
-;;   :init
-;;   (defun my:ivy-migemo-re-builder (str)
-;;     "Own ivy-migemo-re-build for swiper."
-;;     (let* ((sep " \\|\\^\\|\\.\\|\\*")
-;;            (splitted (--map (s-join "" it)
-;;                             (--partition-by (s-matches-p " \\|\\^\\|\\.\\|\\*" it)
-;;                                             (s-split "" str t)))))
-;;       (s-join "" (--map (cond ((s-equals? it " ") ".*?")
-;;                               ((s-matches? sep it) it)
-;;                               (t (migemo-get-pattern it)))
-;;                         splitted))))
-;;   (setq avy-migemo-at-full-max 4)
-;;   ;; (use-package avy-migemo-e.g.swiper)
-;;   )
 ;; ace-window
 (use-package ace-window
   :ensure t
@@ -583,7 +555,7 @@ COMP is used instead of eq when COMP is given."
   (company-dabbrev-ignore-case nil)
   (company-dabbrev-downcase nil)
   :config
-  (add-hook 'emacs-lisp-mode-hook #'(lambda () (add-to-list 'company-backends 'company-elisp)))
+  (add-hook 'emacs-lisp-mode-hook (lambda () (add-to-list 'company-backends 'company-elisp)))
   (use-package company-flx
     :ensure t
     :hook (company-mode . company-flx-mode))
@@ -596,35 +568,34 @@ COMP is used instead of eq when COMP is given."
     :hook (company-mode . company-box-mode)
     :config
     (setq company-box-icons-nerd-icons
-    `((Unknown . ,(nerd-icons-faicon "nf-fa-code"))
-      (Text . ,(nerd-icons-faicon "nf-fa-text_width"))
-      (Method . ,(nerd-icons-faicon "nf-fa-cube"))
-      (Function . ,(nerd-icons-faicon "nf-fa-cube"))
-      (Constructor . ,(nerd-icons-faicon "nf-fa-cube"))
-      (Field . ,(nerd-icons-faicon "nf-fa-tag"))
-      (Variable . ,(nerd-icons-faicon "nf-fa-tag"))
-      (Class . ,(nerd-icons-faicon "nf-fa-cogs"))
-      (Interface . ,(nerd-icons-faicon "nf-fa-italic"))
-      (Module . ,(nerd-icons-faicon "nf-fa-code"))
-      (Property . ,(nerd-icons-faicon "nf-fa-wrench"))
-      (Unit . ,(nerd-icons-faicon "nf-fa-street_view"))
-      (Value . ,(nerd-icons-faicon "nf-fa-tag"))
-      (Enum . ,(nerd-icons-faicon "nf-fa-book"))
-      (Keyword . ,(nerd-icons-faicon "nf-fa-key"))
-      (Snippet . ,(nerd-icons-faicon "nf-fa-expand"))
-      (Color . ,(nerd-icons-faicon "nf-fae-palette_color"))
-      (File . ,(nerd-icons-faicon "nf-fa-file"))
-      (Reference . ,(nerd-icons-faicon "nf-fa-street_view"))
-      (Folder . ,(nerd-icons-faicon "nf-fa-folder_open"))
-      (EnumMember . ,(nerd-icons-faicon "nf-fa-book"))
-      (Constant . ,(nerd-icons-faicon "nf-fa-bars"))
-      (Struct . ,(nerd-icons-faicon "nf-fa-cogs"))
-      (Event . ,(nerd-icons-faicon "nf-fa-bolt"))
-      (Operator . ,(nerd-icons-faicon "nf-fa-street_view"))
-      (TypeParameter . ,(nerd-icons-faicon "nf-fa-cogs"))
-      (Template . ,(nerd-icons-faicon "nf-fa-code_fork"))
-      ))
-
+          `((Unknown . ,(nerd-icons-faicon "nf-fa-code"))
+            (Text . ,(nerd-icons-faicon "nf-fa-text_width"))
+            (Method . ,(nerd-icons-faicon "nf-fa-cube"))
+            (Function . ,(nerd-icons-faicon "nf-fa-cube"))
+            (Constructor . ,(nerd-icons-faicon "nf-fa-cube"))
+            (Field . ,(nerd-icons-faicon "nf-fa-tag"))
+            (Variable . ,(nerd-icons-faicon "nf-fa-tag"))
+            (Class . ,(nerd-icons-faicon "nf-fa-cogs"))
+            (Interface . ,(nerd-icons-faicon "nf-fa-italic"))
+            (Module . ,(nerd-icons-faicon "nf-fa-code"))
+            (Property . ,(nerd-icons-faicon "nf-fa-wrench"))
+            (Unit . ,(nerd-icons-faicon "nf-fa-street_view"))
+            (Value . ,(nerd-icons-faicon "nf-fa-tag"))
+            (Enum . ,(nerd-icons-faicon "nf-fa-book"))
+            (Keyword . ,(nerd-icons-faicon "nf-fa-key"))
+            (Snippet . ,(nerd-icons-faicon "nf-fa-expand"))
+            (Color . ,(nerd-icons-faicon "nf-fae-palette_color"))
+            (File . ,(nerd-icons-faicon "nf-fa-file"))
+            (Reference . ,(nerd-icons-faicon "nf-fa-street_view"))
+            (Folder . ,(nerd-icons-faicon "nf-fa-folder_open"))
+            (EnumMember . ,(nerd-icons-faicon "nf-fa-book"))
+            (Constant . ,(nerd-icons-faicon "nf-fa-bars"))
+            (Struct . ,(nerd-icons-faicon "nf-fa-cogs"))
+            (Event . ,(nerd-icons-faicon "nf-fa-bolt"))
+            (Operator . ,(nerd-icons-faicon "nf-fa-street_view"))
+            (TypeParameter . ,(nerd-icons-faicon "nf-fa-cogs"))
+            (Template . ,(nerd-icons-faicon "nf-fa-code_fork"))
+            ))
     (setq company-box-icons-alist 'company-box-icons-nerd-icons)
     (setq company-box-icons-unknown 'fa_question_circle)
     (setq company-box-icons-elisp
@@ -675,7 +646,7 @@ COMP is used instead of eq when COMP is given."
   (tab-bar-new-button-show nil)
   (tab-bar-close-button-show nil)
   (tab-bar-tab-name-function
-   #'(lambda () (concat "ǀ " (tab-bar-tab-name-current-with-count))))
+   (lambda () (concat "ǀ " (tab-bar-tab-name-current-with-count))))
   :init
   (defvar my-tab-bar-map (make-sparse-keymap))
   (bind-keys :prefix-map my-tab-bar-map
@@ -772,20 +743,18 @@ COMP is used instead of eq when COMP is given."
   :config
   (migemo-init))
 ;;;; IME -- ddskk
-(defvar my:d:skk (expand-file-name "app/SKK" my:d:nextcloud))
-(setq skk-large-jisyo (expand-file-name "SKK-JISYO.L+emoji.utf8" my:d:skk))
 (use-package skk
   :ensure ddskk
-  :bind (([hiragana-katakana] . skk-mode)
-         ("C-\\" . skk-mode))
-  :init
+  :bind (("C-\\" . skk-mode))
+  :config
+  (defvar my:d:skk (expand-file-name "app/SKK" my:d:nextcloud))
+  (setq skk-large-jisyo (expand-file-name "SKK-JISYO.L+emoji.utf8" my:d:skk))
   (setq skk-user-directory my:d:skk
         skk-jisyo (expand-file-name "jisyo.utf8" my:d:skk)
         skk-backup-jisyo (expand-file-name "SKK/jisyo.bak" my:d:tmp)
         skk-study-backup-file (expand-file-name "SKK/study.bak" my:d:tmp))
   (setq skk-jisyo-code 'utf-8)
   (setq default-input-method "japanese-skk")
-  :config
   (setq skk-extra-jisyo-file-list
         (list
          (expand-file-name "SKK-JISYO.JIS3_4" my:d:skk)))
@@ -803,7 +772,7 @@ COMP is used instead of eq when COMP is given."
   (setq skk-use-jisx0201-input-method t)
   ;; 辞書アップデート
   (setq skk-update-jisyo-function
-        #'(lambda (word &optional purge)
+        (lambda (word &optional purge)
             (if purge
                 (skk-update-jisyo-original word purge)
               (let* ((pair (skk-treat-strip-note-from-word word))
@@ -826,11 +795,12 @@ COMP is used instead of eq when COMP is given."
 	                skk-kuten-touten-alist)))
   (setq-default skk-kutouten-type 'my-jp))
 ;;;; Spell Checker
-;; ispell
-(use-package ispell
-  :custom
-  (ispell-program-name "hunspell")
+;; flyspell
+(use-package flyspell
+  :hook ((org-mode text-mode LaTeX-mode) . flyspell-mode)
   :config
+  (setq ispell-program-name "hunspell")
+  (defvar flyspell-correct-map (make-sparse-keymap))
   (defvar ispell-regexp-ja "[一-龠ぁ-🈀ァ-𛀀ー・、。々]+"
     "Regular expression to match a Japanese word.
 The expression can be [^\000-\377]+, [^!-~]+, or [一-龠ぁ-🈀ァ-𛀀ー・、。々]+")
@@ -839,12 +809,7 @@ The expression can be [^\000-\377]+, [^!-~]+, or [一-龠ぁ-🈀ァ-𛀀ー・�
     "Tell flyspell to skip a Japanese word.
 Call this on `flyspell-incorrect-hook'."
     (string-match ispell-regexp-ja (buffer-substring beg end)))
-  (add-hook 'flyspell-incorrect-hook 'flyspell-skip-ja))
-;; flyspell
-(use-package flyspell
-  :hook ((org-mode text-mode LaTeX-mode) . flyspell-mode)
-  :config
-  (defvar flyspell-correct-map (make-sparse-keymap))
+  (add-hook 'flyspell-incorrect-hook 'flyspell-skip-ja)
   (use-package flyspell-correct-avy-menu
     :ensure t
     :init
@@ -869,6 +834,7 @@ Call this on `flyspell-incorrect-hook'."
 (use-package eww
   :preface
   (setq my:d:eww (expand-file-name "eww" my:d:tmp))
+  :commands (eww)
   :custom
   (eww-bookmarks-directory my:d:eww)
   (eww-history-limit 9999)
@@ -882,10 +848,10 @@ Call this on `flyspell-incorrect-hook'."
   (undohist-initialize)
 
   (defun undohist--auto-recover (orig-fun &rest args)
-  "Ignore yes/no prompt in `undohist-recover-1'."
-  (cl-letf (((symbol-function 'yes-or-no-p) (lambda (&rest args) t))
-            ((symbol-function 'y-or-n-p) (lambda (&rest args) t)))
-    (apply orig-fun args)))
+    "Ignore yes/no prompt in `undohist-recover-1'."
+    (cl-letf (((symbol-function 'yes-or-no-p) (lambda (&rest args) t))
+              ((symbol-function 'y-or-n-p) (lambda (&rest args) t)))
+      (apply orig-fun args)))
   (advice-add 'undohist-recover-1 :around #'undohist--auto-recover)
   )
 ;; undo-tree
@@ -915,20 +881,20 @@ Call this on `flyspell-incorrect-hook'."
   (add-to-list 'yas-snippet-dirs (expand-file-name "snippets" my:d:share))
   (add-hook
    'yas-minor-mode
-   #'(lambda ()
+   (lambda ()
        (setq-local
         company-backends
         (mapcar #'company-mode/backend-with-yas company-backends)))))
 
 ;;; VCS -- Git
-(custom-set-variables '(find-file-visit-truename t))
+(setq find-file-visit-truename t)
 (setq vc-follow-symlinks t)
 (use-package magit
   :ensure t
   :bind ("C-x g" . magit-status))
 (use-package git-gutter
   :ensure t
-  :hook (after-init . global-git-gutter-mode)
+  :hook (prog-mode . global-git-gutter-mode)
   :custom
   (git-gutter:handled-backends '(git hg))
   :custom-face
@@ -937,9 +903,12 @@ Call this on `flyspell-incorrect-hook'."
   (git-gutter:deleted  ((t (:foreground "#ff79c6" :background "#ff79c6")))))
 (use-package git-modes
   :ensure t
-  :defer t)
+  :mode ((".gitconfig" . gitconfig-mode)
+         (".gitignore" . gitignore-mode)
+         (".gitattributes" . gitattributes-mode)))
 (use-package counsel-ghq
-  :quelpa (counsel-ghq :fetcher github :repo windymelt/counsel-ghq)
+  ;; :quelpa (counsel-ghq :fetcher github :repo windymelt/counsel-ghq)
+  :load-path "share/counsel-ghq"
   :bind ("M-g" . counsel-ghq))
 
 ;;; Programming Language
@@ -947,6 +916,7 @@ Call this on `flyspell-incorrect-hook'."
 (use-package projectile
   :ensure t
   :after counsel
+  :hook (prog-mode . projectile-mode)
   :custom
   (projectile-enable-caching t)
   (projectile-completion-system 'ivy)
@@ -1120,6 +1090,9 @@ Call this on `flyspell-incorrect-hook'."
 ;;;; YAML
 (use-package yaml-mode
   :ensure t
+  :mode
+  (("\\.yaml$" . yaml-mode)
+   ("\\.yml$" . yaml-mode))
   :custom
   (yaml-indent-offset 4))
 
@@ -1157,6 +1130,7 @@ Call this on `flyspell-incorrect-hook'."
   (my:path-exists? (my:locate-home "quicklisp")))
 (use-package slime
   :if quicklisp-directory
+  :commands (slime)
   :ensure slime-company
   :config
   (setq inferior-lisp-program "sbcl")
@@ -1272,66 +1246,64 @@ Call this on `flyspell-incorrect-hook'."
 ;; python-mode
 (use-package python-mode
   :ensure t
+  :mode (("\\.py$" . python-mode))
   :config
   (push '("Pyakefile" . python-mode) auto-mode-alist)
   (setq py-outline-minor-mode-p nil)
   (setq py-current-defun-show t)
   (setq py-jump-on-exception nil)
-  (setq py-current-defun-delay 1000))
+  (setq py-current-defun-delay 1000)
+  ;; poetry
+  (use-package poetry
+    ;; :hook (python-base-mode . poetry-tracking-mode)
+    :custom
+    (poetry-tracking-strategy 'projectile))
+  ;; python-black
+  (use-package python-black
+    :ensure t)
+  ;; python-isort
+  (use-package python-isort
+    :ensure t
+    :config
+    (setq python-isort-arguments
+          (append python-isort-arguments '("--profile" "black"))))
+  (defun python-formatter ()
+    (interactive)
+    (poetry-tracking-mode)
+    (python-isort-buffer)
+    (python-black-buffer)
+    (message "Formatted."))
+  (bind-keys :map python-base-mode-map
+             ("C-c f" . python-formatter)
+             ("C-c C-f" . python-formatter)
+             :map python-mode-map
+             ("C-c f" . python-formatter)
+             ("C-c C-f" . python-formatter)))
 ;; lsp-pyright
 (use-package lsp-pyright
-    ;; npm install -g pyright
-    :ensure t
-    :disabled t
-    :custom
-    (lsp-pyright-multi-root nil)
-    :config
-    ;; (setq lsp-pyright-multi-root nil)
-    (dolist
-        (exclude-dirs
-         `("[/\\\\]\\.venv\\'"
-           "[/\\\\]\\.cache\\'"
-           "[/\\\\]\\.mypy_cache\\'"
-           "[/\\\\]__pycache__\\'"))
-      (push exclude-dirs lsp-file-watch-ignored))
-    (add-hook
-     'python-mode-hook
-     #'(lambda ()
-         (progn
-           (poetry-tracking-mode)
-           (poetry-track-virtualenv)
-           (setq lsp-pyright-venv-path python-shell-virtualenv-root)
-           (setq lsp-pyright-venv-directory python-shell-virtualenv-root)
-           (lsp-deferred)))))
-;; poetry
-(use-package poetry
-  ;; :quelpa (poetry :fetcher github :repo cybniv/poetry.el)
-  ;; :hook (python-base-mode . poetry-tracking-mode)
-  :custom
-  (poetry-tracking-strategy 'projectile)
-  :config
-  (my:enable-mode poetry-tracking-mode))
-;; python-black
-(use-package python-black
-  :ensure t)
-;; python-isort
-(use-package python-isort
+  ;; npm install -g pyright
   :ensure t
+  :disabled t
+  :custom
+  (lsp-pyright-multi-root nil)
   :config
-  (setq python-isort-arguments
-        (append python-isort-arguments '("--profile" "black"))))
-(defun python-formatter ()
-  (interactive)
-  (poetry-tracking-mode)
-  (python-isort-buffer)
-  (python-black-buffer)
-  (message "Formatted."))
-(bind-keys :map python-base-mode-map
-           ("C-c f" . python-formatter)
-           ("C-c C-f" . python-formatter)
-           :map python-mode-map
-           ("C-c f" . python-formatter)
-           ("C-c C-f" . python-formatter))
+  ;; (setq lsp-pyright-multi-root nil)
+  (dolist
+      (exclude-dirs
+       `("[/\\\\]\\.venv\\'"
+         "[/\\\\]\\.cache\\'"
+         "[/\\\\]\\.mypy_cache\\'"
+         "[/\\\\]__pycache__\\'"))
+    (push exclude-dirs lsp-file-watch-ignored))
+  (add-hook
+   'python-mode-hook
+   (lambda ()
+       (progn
+         (poetry-tracking-mode)
+         (poetry-track-virtualenv)
+         (setq lsp-pyright-venv-path python-shell-virtualenv-root)
+         (setq lsp-pyright-venv-directory python-shell-virtualenv-root)
+         (lsp-deferred)))))
 
 (defvar py-auto-format nil)
 (defun toggle-py-auto-format ()
@@ -1352,9 +1324,9 @@ Call this on `flyspell-incorrect-hook'."
   :disabled t
   :config
   (quickrun-add-command "python"
-    '((:command . "python"))
-    ;; :override t)
-    )
+                        '((:command . "python"))
+                        ;; :override t)
+                        )
   (bind-keys :map python-base-mode-map
              ("C-c q" . quickrun))
   (use-package popwin
@@ -1363,6 +1335,7 @@ Call this on `flyspell-incorrect-hook'."
 
 ;;;; outline-(minor-)?mode
 (use-package outline
+  :defer t
   :bind (:map outline-minor-mode-map
               ("<tab>" . outline-cycle)
               ("C-c C-f" . outline-forward-same-level)
@@ -1393,12 +1366,6 @@ Call this on `flyspell-incorrect-hook'."
     :preface
     (setq mime-view-text/html-previewer 'shr
           mime-setup-enable-inline-image 'shr))
-  (use-package rail
-    :quelpa (rail :fetcher github :repo uwabami/rail)
-    :init
-    (setq rail-emulate-genjis t))
-  (use-package elscreen-wl
-    :if (featurep 'elscreen))
   ;; prefer text/plain than html
   (set-alist 'mime-view-type-subtype-score-alist '(text . html) 0)
   (setq wl-init-file (my:locate-home ".mua/wl-info.el")))
@@ -1433,13 +1400,13 @@ Call this on `flyspell-incorrect-hook'."
     :ensure t)
   (setq org-latex-listings 'minted)
   (setq org-latex-minted-options
-      '(("frame" "lines")
-        ("framesep=2mm")
-        ("linenos=true")
-        ("baselinestretch=1.2")
-        ("fontsize=\\scriptsize")
-        ("breaklines")
-        ))
+        '(("frame" "lines")
+          ("framesep=2mm")
+          ("linenos=true")
+          ("baselinestretch=1.2")
+          ("fontsize=\\scriptsize")
+          ("breaklines")
+          ))
   (setq org-capture-bookmark nil)
   (setq org-startup-truncated nil)
   (setq org-return-follows-link t)
@@ -1508,6 +1475,7 @@ Call this on `flyspell-incorrect-hook'."
 ;; ssh-config-mode
 (use-package ssh-config-mode
   :ensure t
+  :defer t
   :custom
   (ssh-config-mode-indent 4))
 ;;;; which-key
@@ -1530,7 +1498,7 @@ Call this on `flyspell-incorrect-hook'."
   (recentf-exclude '(".recentf" "COMMIT_EDITMSG" "/\\.emacs\\.d/elpa/"))
   :hook (after-init . recentf-mode)
   :config
-  (run-with-idle-timer 30 t '(lambda () (with-suppressed-message (recentf-save-list))))
+  (run-with-idle-timer 30 t (lambda () (with-suppressed-message (recentf-save-list))))
   (use-package recentf-ext
     :ensure t))
 ;;;; mwim
@@ -1556,7 +1524,7 @@ Call this on `flyspell-incorrect-hook'."
   (highlight-indent-guides-character ?ǀ)
   :config
   (if window-system
-    (setq highlight-indent-guides-auto-enabled t)
+      (setq highlight-indent-guides-auto-enabled t)
     (setq highlight-indent-guides-auto-enabled nil)))
 ;;;; expand-region
 (use-package expand-region
@@ -1597,14 +1565,9 @@ Call this on `flyspell-incorrect-hook'."
 (use-package rainbow-mode
   :ensure t
   :hook (prog-mode . rainbow-mode))
-;;;; multi-term
-(use-package multi-term
-  :ensure t
-  :commands multi-term
-  :config
-  (setq multi-term-program (executable-find "bash")))
 ;;;; vterm
 (use-package vterm
+  :commands (vterm)
   :ensure t
   :custom
   (vterm-max-scrollback 10000000)
