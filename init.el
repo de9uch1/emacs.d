@@ -320,6 +320,7 @@
 ;; definition temporary files and shared files
 (setq url-configuration-directory (expand-file-name "url" my:d:tmp)
       nsm-settings-file (expand-file-name "network-settings.data" my:d:tmp)
+      project-list-file (expand-file-name "projects" my:d:tmp)
       bookmark-default-file (expand-file-name "bookmarks" my:d:share))
 ;; save minibuffer history
 (add-hook 'after-init-hook (lambda () (my:enable-mode savehist-mode)))
@@ -1059,6 +1060,11 @@ Call this on `flyspell-incorrect-hook'."
   (setq py-current-defun-show t)
   (setq py-jump-on-exception nil)
   (setq py-current-defun-delay 1000)
+  ;; python-insert-docstring: for google-style docstring
+  (use-package python-insert-docstring
+    :ensure t
+    :bind (:map python-mode-map
+                ("C-c i" . python-insert-docstring-with-google-style-at-point)))
   ;; python-black
   (use-package python-black
     :ensure t)
