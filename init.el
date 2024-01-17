@@ -382,17 +382,6 @@
          ("M-<right>" . windmove-right)
          ("M-<up>" . windmove-up)
          ("M-<down>" . windmove-down)))
-;; tree-sitter
-;; (use-package treesit
-;;   :custom
-;;   :disabled t
-;;   (treesit-font-lock-level 3)
-;;   :config
-;;   (use-package treesit-auto
-;;     :ensure t
-;;     :config
-;;     (setq treesit-auto-install t)
-;;     (global-treesit-auto-mode)))
 
 ;;; Global Packages
 (use-package evil
@@ -1029,6 +1018,19 @@ Call this on `flyspell-incorrect-hook'."
     (lsp-ui-doc-use-webkit nil)
     (lsp-ui-doc-alignment 'frame)))
 
+;; tree-sitter
+(use-package treesit
+  :custom
+  (treesit-font-lock-level 3))
+(use-package treesit-auto
+  :ensure t
+  :custom
+  (treesit-auto-install t)
+  :config
+  (setq treesit-auto-langs (delq 'python treesit-auto-langs))
+  (global-treesit-auto-mode)
+  (treesit-auto-add-to-auto-mode-alist))
+
 ;;;; C, C++
 ;; (use-package ccls
 ;;   :if (executable-find "ccls")
@@ -1045,6 +1047,97 @@ Call this on `flyspell-incorrect-hook'."
 ;; (add-to-list 'major-mode-remap-alist '(c-or-c++-mode . c-or-c++-ts-mode))
 (push (cons "\\.cu$" 'c++-ts-mode) auto-mode-alist)
 (push (cons "\\.cuh$" 'c++-ts-mode) auto-mode-alist)
+
+;;;; python
+;; python-mode
+(use-package python-mode
+  :ensure t
+  :mode (("\\.py$" . python-mode))
+  :config
+  (push '("Pyakefile" . python-mode) auto-mode-alist)
+  (setq py-outline-minor-mode-p nil)
+  (setq py-current-defun-show t)
+  (setq py-jump-on-exception nil)
+  (setq py-current-defun-delay 1000)
+  ;; python-black
+  (use-package python-black
+    :ensure t)
+  ;; python-isort
+  (use-package python-isort
+    :ensure t
+    :config
+    (setq python-isort-arguments
+          (append python-isort-arguments '("--profile" "black"))))
+  (defun python-formatter ()
+    (interactive)
+    (poetry-tracking-mode)
+    (python-isort-buffer)
+    (python-black-buffer)
+    (message "Formatted."))
+  (bind-keys :map python-base-mode-map
+             ("C-c f" . python-formatter)
+             ("C-c C-f" . python-formatter)
+             :map python-mode-map
+             ("C-c f" . python-formatter)
+             ("C-c C-f" . python-formatter)))
+;; poetry
+(use-package poetry
+  ;; :hook (python-base-mode . poetry-tracking-mode)
+  :custom
+  (poetry-tracking-strategy 'projectile))
+;; lsp-pyright
+(use-package lsp-pyright
+  ;; npm install -g pyright
+  :ensure t
+  :disabled t
+  :custom
+  (lsp-pyright-multi-root nil)
+  :config
+  ;; (setq lsp-pyright-multi-root nil)
+  (dolist
+      (exclude-dirs
+       `("[/\\\\]\\.venv\\'"
+         "[/\\\\]\\.cache\\'"
+         "[/\\\\]\\.mypy_cache\\'"
+         "[/\\\\]__pycache__\\'"))
+    (push exclude-dirs lsp-file-watch-ignored))
+  (add-hook
+   'python-mode-hook
+   (lambda ()
+     (progn
+       (poetry-tracking-mode)
+       (poetry-track-virtualenv)
+       (setq lsp-pyright-venv-path python-shell-virtualenv-root)
+       (setq lsp-pyright-venv-directory python-shell-virtualenv-root)
+       (lsp-deferred)))))
+
+(defvar py-auto-format nil)
+(defun toggle-py-auto-format ()
+  (interactive)
+  (if py-auto-format
+      (progn
+        (message "Auto formatting is disabled.")
+        (remove-hook 'before-save-hook #'python-formatter t)
+        (setq py-auto-format nil))
+    (progn
+      (message "Auto formatting is enabled.")
+      (add-hook 'before-save-hook #'python-formatter nil t)
+      (setq py-auto-format t))))
+
+;; quickrun
+(use-package quickrun
+  :ensure t
+  :disabled t
+  :config
+  (quickrun-add-command "python"
+                        '((:command . "python"))
+                        ;; :override t)
+                        )
+  (bind-keys :map python-base-mode-map
+             ("C-c q" . quickrun))
+  (use-package popwin
+    :config
+    (push '("*quickrun*") popwin:special-display-config)))
 
 ;;;; bison, flex
 (use-package bison-mode
@@ -1072,6 +1165,10 @@ Call this on `flyspell-incorrect-hook'."
            "go build -v && go test -v && go vet")))
 ;;(add-hook 'go-mode-hook 'go-mode-omnibus)
 (add-hook 'go-ts-mode-hook 'go-mode-omnibus)
+;;;; Lua
+(use-package lua-mode
+  :ensure t
+  :mode (("\\.lua$" . lua-mode)))
 
 ;;;; shell script
 (use-package fish-mode
@@ -1236,97 +1333,6 @@ Call this on `flyspell-incorrect-hook'."
 ;; (use-package inf-ruby
 ;;   :defer t
 ;;   :hook (enh-ruby-mode . inf-ruby-minor-mode))
-
-;;;; python
-;; python-mode
-(use-package python-mode
-  :ensure t
-  :mode (("\\.py$" . python-mode))
-  :config
-  (push '("Pyakefile" . python-mode) auto-mode-alist)
-  (setq py-outline-minor-mode-p nil)
-  (setq py-current-defun-show t)
-  (setq py-jump-on-exception nil)
-  (setq py-current-defun-delay 1000)
-  ;; poetry
-  (use-package poetry
-    ;; :hook (python-base-mode . poetry-tracking-mode)
-    :custom
-    (poetry-tracking-strategy 'projectile))
-  ;; python-black
-  (use-package python-black
-    :ensure t)
-  ;; python-isort
-  (use-package python-isort
-    :ensure t
-    :config
-    (setq python-isort-arguments
-          (append python-isort-arguments '("--profile" "black"))))
-  (defun python-formatter ()
-    (interactive)
-    (poetry-tracking-mode)
-    (python-isort-buffer)
-    (python-black-buffer)
-    (message "Formatted."))
-  (bind-keys :map python-base-mode-map
-             ("C-c f" . python-formatter)
-             ("C-c C-f" . python-formatter)
-             :map python-mode-map
-             ("C-c f" . python-formatter)
-             ("C-c C-f" . python-formatter)))
-;; lsp-pyright
-(use-package lsp-pyright
-  ;; npm install -g pyright
-  :ensure t
-  :disabled t
-  :custom
-  (lsp-pyright-multi-root nil)
-  :config
-  ;; (setq lsp-pyright-multi-root nil)
-  (dolist
-      (exclude-dirs
-       `("[/\\\\]\\.venv\\'"
-         "[/\\\\]\\.cache\\'"
-         "[/\\\\]\\.mypy_cache\\'"
-         "[/\\\\]__pycache__\\'"))
-    (push exclude-dirs lsp-file-watch-ignored))
-  (add-hook
-   'python-mode-hook
-   (lambda ()
-     (progn
-       (poetry-tracking-mode)
-       (poetry-track-virtualenv)
-       (setq lsp-pyright-venv-path python-shell-virtualenv-root)
-       (setq lsp-pyright-venv-directory python-shell-virtualenv-root)
-       (lsp-deferred)))))
-
-(defvar py-auto-format nil)
-(defun toggle-py-auto-format ()
-  (interactive)
-  (if py-auto-format
-      (progn
-        (message "Auto formatting is disabled.")
-        (remove-hook 'before-save-hook #'python-formatter t)
-        (setq py-auto-format nil))
-    (progn
-      (message "Auto formatting is enabled.")
-      (add-hook 'before-save-hook #'python-formatter nil t)
-      (setq py-auto-format t))))
-
-;; quickrun
-(use-package quickrun
-  :ensure t
-  :disabled t
-  :config
-  (quickrun-add-command "python"
-                        '((:command . "python"))
-                        ;; :override t)
-                        )
-  (bind-keys :map python-base-mode-map
-             ("C-c q" . quickrun))
-  (use-package popwin
-    :config
-    (push '("*quickrun*") popwin:special-display-config)))
 
 ;;;; outline-(minor-)?mode
 (use-package outline
