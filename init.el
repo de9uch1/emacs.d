@@ -520,9 +520,117 @@
   :custom
   (smex-history-length 32)
   (smex-save-file (expand-file-name "smex-items" my:d:tmp)))
+;;;; corfu -- in-buffer completion
+(use-package corfu
+  :ensure t
+  :hook (after-init . (lambda () (global-corfu-mode) (my:enable-mode corfu-popupinfo-mode)))
+  :custom
+  (corfu-cycle t)
+  (corfu-auto t)
+  (corfu-quit-at-boundary nil)
+  (corfu-preselect 'valid)
+  (corfu-left-margin-width 1.0)
+  (corfu-right-margin-width 1.0)
+  (corfu-bar-width 0.5)
+  (corfu-auto-prefix 1)
+  (corfu-auto-delay 0.05)
+  (corfu-quit-no-match t)
+  (corfu-popupinfo-delay '(0.05 . 0.05))
+  (corfu-popupinfo-resize nil)
+  :config
+  (use-package nerd-icons-corfu
+    :ensure t
+    :custom
+    (nerd-icons-corfu-mapping
+     '((array :style "cod" :icon "symbol_array" :face font-lock-type-face)
+       (boolean :style "cod" :icon "symbol_boolean" :face font-lock-builtin-face)
+       ;; (class :style "cod" :icon "symbol_class" :face font-lock-type-face)
+       (class :style "fa" :icon "cogs" :face font-lock-type-face)
+       (color :style "cod" :icon "symbol_color" :face success)
+       (command :style "cod" :icon "terminal" :face default)
+       (constant :style "cod" :icon "symbol_constant" :face font-lock-constant-face)
+       (constructor :style "cod" :icon "triangle_right" :face font-lock-function-name-face)
+       (enummember :style "cod" :icon "symbol_enum_member" :face font-lock-builtin-face)
+       (enum-member :style "cod" :icon "symbol_enum_member" :face font-lock-builtin-face)
+       (enum :style "cod" :icon "symbol_enum" :face font-lock-builtin-face)
+       (event :style "cod" :icon "symbol_event" :face font-lock-warning-face)
+       (field :style "cod" :icon "symbol_field" :face font-lock-variable-name-face)
+       (file :style "cod" :icon "symbol_file" :face font-lock-string-face)
+       (folder :style "cod" :icon "folder" :face font-lock-doc-face)
+       (interface :style "cod" :icon "symbol_interface" :face font-lock-type-face)
+       ;; (keyword :style "cod" :icon "symbol_keyword" :face font-lock-keyword-face)
+       (keyword :style "fa" :icon "key" :face font-lock-keyword-face)
+       (macro :style "cod" :icon "symbol_misc" :face font-lock-keyword-face)
+       (magic :style "cod" :icon "wand" :face font-lock-builtin-face)
+       (method :style "cod" :icon "symbol_method" :face font-lock-function-name-face)
+       ;; (function :style "cod" :icon "symbol_method" :face font-lock-function-name-face)
+       (function :style "fa" :icon "cube" :face font-lock-function-name-face)
+       ;; (module :style "cod" :icon "file_submodule" :face font-lock-preprocessor-face)
+       (module :style "fa" :icon "code" :face font-lock-preprocessor-face)
+       (numeric :style "cod" :icon "symbol_numeric" :face font-lock-builtin-face)
+       (operator :style "cod" :icon "symbol_operator" :face font-lock-comment-delimiter-face)
+       (param :style "cod" :icon "symbol_parameter" :face default)
+       (property :style "cod" :icon "symbol_property" :face font-lock-variable-name-face)
+       (reference :style "cod" :icon "references" :face font-lock-variable-name-face)
+       (snippet :style "cod" :icon "symbol_snippet" :face font-lock-string-face)
+       (string :style "cod" :icon "symbol_string" :face font-lock-string-face)
+       (struct :style "cod" :icon "symbol_structure" :face font-lock-variable-name-face)
+       (text :style "cod" :icon "text_size" :face font-lock-doc-face)
+       (typeparameter :style "cod" :icon "list_unordered" :face font-lock-type-face)
+       (type-parameter :style "cod" :icon "list_unordered" :face font-lock-type-face)
+       (unit :style "cod" :icon "symbol_ruler" :face font-lock-constant-face)
+       (value :style "cod" :icon "symbol_field" :face font-lock-builtin-face)
+       ;; (variable :style "cod" :icon "symbol_variable" :face font-lock-variable-name-face)
+       (variable :style "fa" :icon "tag" :face font-lock-variable-name-face)
+       ;; (t :style "cod" :icon "code" :face font-lock-warning-face)
+       (t :style "fa" :icon "code" :face font-lock-warning-face)
+       ))
+    :config
+    (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter))
+  (use-package corfu-terminal
+    :load-path "share/corfu-terminal"
+    :if (not window-system)
+    :after corfu
+    :hook (global-corfu-mode . corfu-terminal-mode))
+  ;;;;; orderless
+  (use-package orderless
+    :ensure t
+    :custom
+    (completion-styles '(orderless basic))
+    (completion-category-overrides '((file (styles basic partial-completion))))
+    (orderless-matching-styles '(orderless-flex orderless-literal)))
+  (use-package corfu-prescient
+    :ensure t
+    :after corfu
+    :hook (global-corfu-mode . corfu-prescient-mode)
+    :config
+    (with-eval-after-load 'orderless
+      (setq corfu-prescient-enable-filtering nil))))
+;;;; cape -- for corfu
+(use-package cape
+  :ensure t
+  :init
+  ;; Add to the global default value of `completion-at-point-functions' which is
+  ;; used by `completion-at-point'.  The order of the functions matters, the
+  ;; first function returning a result wins.  Note that the list of buffer-local
+  ;; completion functions takes precedence over the global list.
+  (add-to-list 'completion-at-point-functions #'cape-dabbrev)
+  (add-to-list 'completion-at-point-functions #'cape-file)
+  (add-to-list 'completion-at-point-functions #'cape-elisp-block)
+  ;;(add-to-list 'completion-at-point-functions #'cape-history)
+  ;;(add-to-list 'completion-at-point-functions #'cape-keyword)
+  ;;(add-to-list 'completion-at-point-functions #'cape-tex)
+  ;;(add-to-list 'completion-at-point-functions #'cape-sgml)
+  ;;(add-to-list 'completion-at-point-functions #'cape-rfc1345)
+  ;;(add-to-list 'completion-at-point-functions #'cape-abbrev)
+  ;;(add-to-list 'completion-at-point-functions #'cape-dict)
+  ;;(add-to-list 'completion-at-point-functions #'cape-elisp-symbol)
+  ;;(add-to-list 'completion-at-point-functions #'cape-line)
+)
 ;;;; company
 (use-package company
   :ensure t
+  :disabled t
   :diminish company-mode
   :hook (after-init . global-company-mode)
   ;;(emacs-lisp-mode . ,(lambda () (add-to-list 'company-backends 'company-elisp))))
@@ -850,27 +958,36 @@ Call this on `flyspell-incorrect-hook'."
   (undo-tree-history-directory-alist `(("." . ,(expand-file-name "undohist" my:d:tmp))))
   (undo-tree-visualizer-timestamps t))
 ;;;; yasnippet
+;; (use-package yasnippet
+;;   :ensure t
+;;   :diminish yas-minor-mode
+;;   :after company
+;;   :hook (prog-mode . yas-global-mode)
+;;   :config
+;;   (defvar company-mode/enable-yas t)
+;;   (defun company-mode/backend-with-yas (backend)
+;;     (if (or (not company-mode/enable-yas) (and (listp backend) (member 'company-yasnippet backend)))
+;;         backend
+;;       (append (if (consp backend) backend (list backend))
+;;               '(:with company-yasnippet))))
+;;   (use-package yasnippet-snippets
+;;     :ensure t)
+;;   (add-to-list 'yas-snippet-dirs (expand-file-name "snippets" my:d:share))
+;;   (add-hook
+;;    'yas-minor-mode
+;;    (lambda ()
+;;      (setq-local
+;;       company-backends
+;;       (mapcar #'company-mode/backend-with-yas company-backends)))))
 (use-package yasnippet
   :ensure t
   :diminish yas-minor-mode
-  :after company
   :hook (prog-mode . yas-global-mode)
   :config
-  (defvar company-mode/enable-yas t)
-  (defun company-mode/backend-with-yas (backend)
-    (if (or (not company-mode/enable-yas) (and (listp backend) (member 'company-yasnippet backend)))
-        backend
-      (append (if (consp backend) backend (list backend))
-              '(:with company-yasnippet))))
   (use-package yasnippet-snippets
     :ensure t)
-  (add-to-list 'yas-snippet-dirs (expand-file-name "snippets" my:d:share))
-  (add-hook
-   'yas-minor-mode
-   (lambda ()
-     (setq-local
-      company-backends
-      (mapcar #'company-mode/backend-with-yas company-backends)))))
+  (add-to-list 'yas-snippet-dirs (expand-file-name "snippets" my:d:share)))
+
 
 ;;; VCS -- Git
 (setq find-file-visit-truename t)
@@ -1066,15 +1183,17 @@ Call this on `flyspell-incorrect-hook'."
     :ensure t
     :bind (:map python-mode-map
                 ("C-c i" . python-insert-docstring-with-google-style-at-point)))
-  ;; python-black
-  (use-package python-black
-    :ensure t)
-  ;; python-isort
-  (use-package python-isort
-    :ensure t
-    :config
-    (setq python-isort-arguments
-          (append python-isort-arguments '("--profile" "black"))))
+  )
+;; python-black
+(use-package python-black
+  :ensure t)
+;; python-isort
+(use-package python-isort
+  :ensure t
+  :config
+  (setq python-isort-arguments
+        (append python-isort-arguments '("--profile" "black"))))
+(eval-and-compile
   (defun python-formatter ()
     (interactive)
     (poetry-tracking-mode)
@@ -1229,22 +1348,23 @@ Call this on `flyspell-incorrect-hook'."
   (interactive)
   (async-shell-command
    (mapconcat #'shell-quote-argument
-              `("make" "-C" ,user-emacs-directory "build") " ")
-   "*Compile init.el*"))
+              `("make" "-C" ,user-emacs-directory "build") " ")))
 (bind-key "C-c C-c" #'compile-init-el emacs-lisp-mode-map)
 ;;;;; Common Lisp
 ;; SLIME
-(defvar quicklisp-directory (eval-when-compile (my:path-exists? (my:locate-home "quicklisp"))))
-(use-package slime
-  :if quicklisp-directory
-  :commands (slime)
-  :ensure slime-company
-  :config
-  (setq inferior-lisp-program "sbcl")
-  (defun lisp-hook ()
-    (load (expand-file-name "slime-helper.el" quicklisp-directory))
-    (slime-setup '(slime-fancy slime-company)))
-  (add-hook 'lisp-mode-hook #'lisp-hook))
+;; (defvar quicklisp-directory (eval-when-compile (my:path-exists? (my:locate-home "quicklisp"))))
+;; (use-package slime
+;;   :if quicklisp-directory
+;;   :commands (slime)
+;;   :ensure t
+;;   ;; :ensure slime-company
+;;   :config
+;;   (setq inferior-lisp-program "sbcl")
+;;   (defun lisp-hook ()
+;;     (load (expand-file-name "slime-helper.el" quicklisp-directory))
+;;     ;; (slime-setup '(slime-fancy slime-company)))
+;;     (slime-setup '(slime-fancy)))
+;;   (add-hook 'lisp-mode-hook #'lisp-hook))
 ;;;;; Scheme
 (eval-and-compile
   (when (executable-find "gosh")
