@@ -66,12 +66,13 @@
 
 ;;;; cl-lib -- load Common Lisp library:
 (eval-when-compile (require 'cl-lib nil t))
-(setq byte-compile-warnings '(not cl-functions free-vars docstrings unresolved))
-(if (and (fboundp 'native-comp-available-p)
-         (native-comp-available-p))
-    (setq native-comp-speed 3
-          native-comp-async-jobs-number 4
-          native-comp-async-report-warnings-errors 'silent))
+(eval-and-compile
+  (setq byte-compile-warnings '(not cl-functions free-vars docstrings unresolved))
+  (if (and (fboundp 'native-comp-available-p)
+           (native-comp-available-p))
+      (setq native-comp-speed 3
+            native-comp-async-jobs-number 4
+            native-comp-async-report-warnings-errors 'silent)))
 (setq package-native-compile t)
 (native-compile-async (locate-user-emacs-file "early-init.el"))
 (native-compile-async (locate-user-emacs-file "init.el"))
@@ -459,8 +460,8 @@
     :after prescient
     :custom
     (ivy-prescient-retain-classic-highlighting t)
-    :config
-    (setf (alist-get 'swiper ivy-re-builders-alist) #'my:ivy-migemo-re-builder)
+    ;; :config
+    ;; (setf (alist-get 'swiper ivy-re-builders-alist) #'my:ivy-migemo-re-builder)
     ;; (setf (alist-get t ivy-re-builders-alist) #'ivy--regex-ignore-order)
     )
   )
@@ -1221,7 +1222,16 @@ Call this on `flyspell-incorrect-hook'."
   (add-hook 'pdf-view-mode-hook (lambda () (my:disable-mode display-line-numbers-mode)))
   (bind-keys :map pdf-view-mode-map ("C-s" . isearch-forward)))
 
-;;;; Lisp -- Common Lisp, Scheme
+;;;; Lisp -- Emacs Lisp, Common Lisp, Scheme
+;;;;; Emacs Lisp
+(defun compile-init-el ()
+  "Compile init.el."
+  (interactive)
+  (async-shell-command
+   (mapconcat #'shell-quote-argument
+              `("make" "-C" ,user-emacs-directory "build") " ")
+   "*Compile init.el*"))
+(bind-key "C-c C-c" #'compile-init-el emacs-lisp-mode-map)
 ;;;;; Common Lisp
 ;; SLIME
 (defvar quicklisp-directory (eval-when-compile (my:path-exists? (my:locate-home "quicklisp"))))
