@@ -139,11 +139,15 @@
   "Disable MODE."
   `(,mode 0))
 ;; suppressed message
-(defmacro with-suppressed-message (&rest body)
-  "Suppress new messages temporarily in the echo area and the `*Messages*' buffer while BODY is evaluated."
-  (declare (indent 0))
-  (let ((message-log-max nil))
-    `(with-temp-message (or (current-message) "") ,@body)))
+(defun suppress-messages (func &rest args)
+  "Suppress message output from FUNC."
+  ;; Some packages are too noisy.
+  ;; https://superuser.com/questions/669701/emacs-disable-some-minibuffer-messages
+  (cl-flet ((silence (&rest args1) (ignore)))
+    (advice-add 'message :around #'silence)
+    (unwind-protect
+        (apply func args)
+      (advice-remove 'message #'silence))))
 
 ;;; My Configurations
 ;; Name
@@ -1579,7 +1583,9 @@ Call this on `flyspell-incorrect-hook'."
   (recentf-exclude '(".recentf" "COMMIT_EDITMSG" "/\\.emacs\\.d/elpa/"))
   :hook (after-init . recentf-mode)
   :config
-  (run-with-idle-timer 30 t (lambda () (with-suppressed-message (recentf-save-list)))))
+  ;; Suppress "Cleaning up the recentf...done (0 removed)"
+  (advice-add 'recentf-cleanup :around #'suppress-messages)
+  (run-with-idle-timer 30 t (lambda () (let ((save-silently t)) (recentf-save-list)))))
 ;;;; mwim
 (use-package mwim
   :ensure t
