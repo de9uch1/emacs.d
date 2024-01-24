@@ -408,12 +408,11 @@
   :ensure t
   :hook (after-init . popwin-mode)
   :config
-  (eval-and-compile
-    (add-to-list 'popwin:special-display-config '("*Compile-Log*"))
-    (add-to-list 'popwin:special-display-config '("*Buffer List*"))
-    (add-to-list 'popwin:special-display-config '("*Warnings*"))
-    (add-to-list 'popwin:special-display-config '("*system-packages*"))
-    (add-to-list 'popwin:special-display-config '("*Async Shell Command*"))))
+  (add-to-list 'popwin:special-display-config '("*Compile-Log*"))
+  (add-to-list 'popwin:special-display-config '("*Buffer List*"))
+  (add-to-list 'popwin:special-display-config '("*Warnings*"))
+  (add-to-list 'popwin:special-display-config '("*system-packages*"))
+  (add-to-list 'popwin:special-display-config '("*Async Shell Command*")))
 ;; popup
 (use-package popup
   :ensure t)
@@ -1165,6 +1164,7 @@ Call this on `flyspell-incorrect-hook'."
   (setq py-current-defun-delay 1000))
 ;; poetry
 (use-package poetry
+  :ensure t
   :defer t
   :hook (python-base-mode . poetry-tracking-mode)
   :custom
