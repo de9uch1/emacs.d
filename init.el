@@ -117,18 +117,20 @@
 ;;     (setq my:gentoo-p t)))
 
 ;;; My Functions and Macros -- prefix "my:"
+(defmacro my:if! (pred then &rest else)
+  "Expand if-statement on the compile time."
+  (declare (indent 2))
+  (if (eval pred) then `(progn ,@else)))
 (defmacro my:path-exists? (path)
   "Return PATH if PATH exists else nil."
-  `(if (file-exists-p ,path)
-       ,path
-     nil))
+  (if (file-exists-p path) path nil))
 (defmacro my:locate-user-emacs-file (x)
   "Expand filename (locate-user-emacs-file X)."
-  `(expand-file-name (locate-user-emacs-file ,x)))
+  (expand-file-name (locate-user-emacs-file x)))
 ;; my:locate-home
 (defmacro my:locate-home (x)
   "Concat and expand path X from the home directory."
-  `(expand-file-name ,x,"~"))
+  (expand-file-name x "~"))
 ;; mode enable/disable
 (defmacro my:enable-mode (mode)
   "Enable MODE."
@@ -170,7 +172,8 @@
    package-archives
    '(("melpa" . "https://melpa.org/packages/")
      ("melpa-stable" . "https://stable.melpa.org/packages/")
-     ("gnu" . "https://elpa.gnu.org/packages/")))
+     ("gnu" . "https://elpa.gnu.org/packages/")
+     ("nongnu" . "https://elpa.nongnu.org/nongnu/")))
   (require 'package nil t)
   (package-initialize))
 ;;;; use-package.el
@@ -473,6 +476,7 @@
          ("M-A" . marginalia-cycle))
   :custom
   (marginalia-align 'right)
+  (marginalia-align-offset (my:if! window-system 0 -1))
   :hook (after-init . marginalia-mode))
 ;; vertico -- VERTical Interactive COmpletion
 (use-package vertico
@@ -633,11 +637,10 @@
        ))
     :config
     (push #'nerd-icons-corfu-formatter corfu-margin-formatters))
-  (eval-and-compile
     (use-package corfu-terminal
-      :load-path "share"
+      :ensure t
       :if (not window-system)
-      :hook (global-corfu-mode . corfu-terminal-mode)))
+      :hook (global-corfu-mode . corfu-terminal-mode))
   ;;;;; orderless
   (use-package orderless
     :ensure t
