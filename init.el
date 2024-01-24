@@ -165,12 +165,12 @@
 
 ;;; Package Management
 ;;;; package.el
-(setq
- package-archives
- '(("melpa" . "https://melpa.org/packages/")
-   ("melpa-stable" . "https://stable.melpa.org/packages/")
-   ("gnu" . "https://elpa.gnu.org/packages/")))
 (eval-and-compile
+  (setq
+   package-archives
+   '(("melpa" . "https://melpa.org/packages/")
+     ("melpa-stable" . "https://stable.melpa.org/packages/")
+     ("gnu" . "https://elpa.gnu.org/packages/")))
   (require 'package nil t)
   (package-initialize))
 ;;;; use-package.el
@@ -181,10 +181,7 @@
   (unless
       (require 'use-package nil t)
     (defmacro use-package (&rest args))))
-(use-package diminish
-  :ensure t)
-(use-package bind-key
-  :ensure t)
+(use-package bind-key)
 ;;;; quelpa, quelpa-use-package
 ;; (use-package quelpa
 ;;   :ensure t
@@ -201,13 +198,16 @@
 ;; (load custom-file t)
 
 ;;;; Font
-;; Fontset -- Cica: https://github.com/miiton/Cica
+;; Fontset
+;; * PlemolJP: https://github.com/yuru7/PlemolJP
+;; * Cica: https://github.com/miiton/Cica
 (when window-system
-  (let* ((fontname "Cica")
-         (fontsize 16))
-    (set-face-attribute 'default nil :family fontname :height 120)
-    (set-fontset-font nil 'ascii (font-spec :family fontname :size fontsize) nil 'append)
-    (set-fontset-font nil 'japanese-jisx0213.2004-1 (font-spec :family fontname) nil 'append))
+  (let* ((font '("PlemolJP Console NF" . 16))
+         ;; (font '("Cica" . 16))
+         (spec (font-spec :family (car font) :size (cdr font))))
+    (set-face-attribute 'default nil :font spec)
+    (set-fontset-font nil 'ascii spec nil 'append)
+    (set-fontset-font nil 'japanese-jisx0213.2004-1 spec nil 'append))
   (setq initial-frame-alist default-frame-alist))
 ;; nerd-icons
 (use-package nerd-icons
@@ -304,7 +304,7 @@
 
 ;;; Basic Configurations
 ;;;; Language, Locale and Coding System
-(set-locale-environment "ja_JP.UTF-8")
+(set-locale-environment "en_US.UTF-8")
 ;; (setq-default file-name-coding-system 'utf-8-unix)
 (setq-default system-time-locale "C")
 (prefer-coding-system 'utf-8-unix)
@@ -317,16 +317,19 @@
 ;;  PATH -- exec-path-from-shell
 (use-package exec-path-from-shell
   :ensure t
-  :if window-system
+  :if (eval-and-compile
+        (and window-system
+             (not (getenv "WSL_INTEROP"))))
   :config
   (exec-path-from-shell-initialize))
 ;; transparent-mode
-;; (use-package tp-mode
-;;   :disabled t
-;;   :if window-system
-;;   :load-path "share/tp-mode"
-;;   :config
-;;   (tp-mode 95))
+(use-package tp-mode
+  :if (eval-and-compile
+        (and window-system
+             (not (getenv "WSL_INTEROP"))))
+  :load-path "share"
+  :config
+  (tp-mode 95))
 ;; Bell
 ;; Alternative flash the screen
 (setq visible-bell nil)
@@ -402,11 +405,12 @@
   :ensure t
   :hook (after-init . popwin-mode)
   :config
-  (push '("*Compile-Log*") popwin:special-display-config)
-  (push '("*Buffer List*") popwin:special-display-config)
-  (push '("*Warnings*") popwin:special-display-config)
-  (push '("*system-packages*") popwin:special-display-config)
-  (push '("*Async Shell Command*") popwin:special-display-config))
+  (eval-and-compile
+    (add-to-list 'popwin:special-display-config '("*Compile-Log*"))
+    (add-to-list 'popwin:special-display-config '("*Buffer List*"))
+    (add-to-list 'popwin:special-display-config '("*Warnings*"))
+    (add-to-list 'popwin:special-display-config '("*system-packages*"))
+    (add-to-list 'popwin:special-display-config '("*Async Shell Command*"))))
 ;; popup
 (use-package popup
   :ensure t)
@@ -495,12 +499,12 @@
     (if (bound-and-true-p vertico-grid-mode)
         (if (= vertico--index index)
             ;; (concat #("▶" 0 1 (face vertico-current)) cand)
-            (concat #("▶" 0 1 (face vertico-current)) cand)
+            (concat #("> " 0 1 (face vertico-current)) cand)
           (concat #("_" 0 1 (display " ")) cand))
       (if (= vertico--index index)
           (concat
            ;; #(" " 0 1 (display (left-fringe right-triangle vertico-current)))
-           #("▶" 0 1 (face vertico-current))
+           #("> " 0 1 (face vertico-current))
            cand)
         ;; cand)
         (concat "  " cand)
@@ -631,7 +635,7 @@
     (push #'nerd-icons-corfu-formatter corfu-margin-formatters))
   (eval-and-compile
     (use-package corfu-terminal
-      :load-path "share/corfu-terminal"
+      :load-path "share"
       :if (not window-system)
       :hook (global-corfu-mode . corfu-terminal-mode)))
   ;;;;; orderless
@@ -920,15 +924,16 @@ Call this on `flyspell-incorrect-hook'."
 ;;;; Translater
 (use-package google-translate
   :ensure t
-  :custom
-  (google-translate-default-source-language "en")
-  (google-translate-default-target-language "ja")
-  :config
+  :commands (google-translate-at-point google-translate-at-point-reverse)
+  :init
   (bind-keys
    :prefix-map google-translate-map
    :prefix "M-t"
    ("M-t" . google-translate-at-point)
-   ("M-r" . google-translate-at-point-reverse)))
+   ("M-r" . google-translate-at-point-reverse))
+  :custom
+  (google-translate-default-source-language "en")
+  (google-translate-default-target-language "ja"))
 
 ;;; Common Packages
 ;;;; eww
@@ -967,13 +972,14 @@ Call this on `flyspell-incorrect-hook'."
 ;;;; yasnippet
 (use-package yasnippet
   :ensure t
+  :defer t
   :diminish yas-minor-mode
-  :hook (prog-mode . yas-global-mode)
+  :hook (after-init . yas-global-mode)
   :config
   (use-package yasnippet-snippets
-    :ensure t)
+    :ensure t
+    :defer t)
   (add-to-list 'yas-snippet-dirs (expand-file-name "snippets" my:d:share)))
-
 
 ;;; VCS -- Git
 (setq find-file-visit-truename t)
@@ -1591,7 +1597,7 @@ Call this on `flyspell-incorrect-hook'."
   :custom
   (highlight-indent-guides-responsive t)
   (highlight-indent-guides-method 'character)
-  (highlight-indent-guides-character ?ǀ)
+  (highlight-indent-guides-character ?￨)
   :config
   (if window-system
       (setq highlight-indent-guides-auto-enabled t)
