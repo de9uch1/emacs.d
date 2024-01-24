@@ -77,7 +77,7 @@
 ;;;; for GUI
 (advice-add 'x-apply-session-resources :override 'ignore)
 ;; window size
-(push '(height . 72) default-frame-alist)
+(push '(height . 68) default-frame-alist)
 (push '(width . 144) default-frame-alist)
 (setq initial-frame-alist default-frame-alist)
 

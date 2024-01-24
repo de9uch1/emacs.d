@@ -38,6 +38,37 @@
 ;;;; Profiler
 ;; (require 'profiler)
 ;; (profiler-start 'cpu)
+;; Setup tracker
+(defvar setup-tracker--level 0)
+(defvar setup-tracker--parents nil)
+(defvar setup-tracker--times nil)
+(when load-file-name
+  (push load-file-name setup-tracker--parents)
+  (push (current-time) setup-tracker--times)
+  (setq setup-tracker--level (1+ setup-tracker--level)))
+(add-variable-watcher
+ 'load-file-name
+ (lambda (_ v &rest __)
+   (cond ((equal v (car setup-tracker--parents))
+          nil)
+         ((equal v (cadr setup-tracker--parents))
+          (setq setup-tracker--level (1- setup-tracker--level))
+          (let* ((now (current-time))
+                 (start (pop setup-tracker--times))
+                 (elapsed (+ (* (- (nth 1 now) (nth 1 start)) 1000)
+                             (/ (- (nth 2 now) (nth 2 start)) 1000))))
+            (with-current-buffer (get-buffer-create "*setup-tracker*")
+              (save-excursion
+                (goto-char (point-min))
+                (dotimes (_ setup-tracker--level) (insert "> "))
+                (insert
+                 (file-name-nondirectory (pop setup-tracker--parents))
+                 " (" (number-to-string elapsed) " msec)\n")))))
+         (t
+          (push v setup-tracker--parents)
+          (push (current-time) setup-tracker--times)
+          (setq setup-tracker--level (1+ setup-tracker--level))))))
+;; Measure the initialization time
 (add-hook 'emacs-startup-hook
           (lambda ()
             (message "init time: %.1f msec"
@@ -186,8 +217,8 @@
   (nerd-icons-scale-factor 0.9))
 (use-package nerd-icons-completion
   :ensure t
-  :config
-  (my:enable-mode nerd-icons-completion-mode))
+  :after (marginalia nerd-icons)
+  :hook (marginalia-mode . nerd-icons-completion-marginalia-setup))
 (use-package nerd-icons-dired
   :ensure t
   :hook (dired-mode . nerd-icons-dired-mode))
@@ -306,7 +337,8 @@
 ;; key binding
 (bind-keys
  ("C-m" . newline-and-indent)
- ("C-h" . delete-backward-char)) ; C-h -> Backspace
+ ("C-h" . delete-backward-char)
+ ("C-c g" . goto-line)) ; C-h -> Backspace
 ;; .el > .elc
 (setq load-prefer-newer t)
 ;; scroll for one line
@@ -418,54 +450,8 @@
           ("findn" "find . -name $*")
           ("duc" "du -had1 $*"))))
 
-;;;; counsel/ivy, swiper
-;; ivy
-(use-package ivy
-  :ensure t
-  :diminish
-  :hook (prescient-persist-mode . ivy-mode)
-  :custom
-  (ivy-use-virtual-buffers t)
-  (ivy-height 30)
-  (ivy-wrap t)
-  (ivy-format-functions-alist '((t . ivy-format-function-arrow)))
-  (ivy-count-format (concat (nerd-icons-faicon "nf-fa-sort_amount_asc") " (%d/%d) "))
-  :config
-  (setq ivy-re-builders-alist '((t . ivy--regex-ignore-order)))
-  (setq enable-recursive-minibuffers t)
-  (my:enable-mode ivy-mode)
-  ;; ivy-rich
-  (use-package ivy-rich
-    :ensure t
-    :after ivy
-    :config
-    (my:enable-mode ivy-rich-mode))
-  ;; nerd-icons-ivy-rich
-  (use-package nerd-icons-ivy-rich
-    :ensure t
-    :after (nerd-icons ivy-rich)
-    :config
-    (my:enable-mode nerd-icons-ivy-rich-mode))
-  ;; ivy-posframe
-  (use-package ivy-posframe
-    :ensure t
-    :disabled t
-    :custom
-    (ivy-posframe-display-functions-alist
-     '((t . ivy-posframe-display-at-point)))
-    :config
-    (my:enable-mode ivy-posframe-mode))
-  (use-package ivy-prescient
-    :ensure t
-    :after prescient
-    :custom
-    (ivy-prescient-retain-classic-highlighting t)
-    ;; :config
-    ;; (setf (alist-get 'swiper ivy-re-builders-alist) #'my:ivy-migemo-re-builder)
-    ;; (setf (alist-get t ivy-re-builders-alist) #'ivy--regex-ignore-order)
-    )
-  )
-;;;; prescient.el -- simple but effective sorting and filtering for Emacs.
+;;;; Mini-buffer completion
+;; prescient -- simple but effective sorting and filtering for Emacs.
 (use-package prescient
   :ensure t
   :hook (after-init . prescient-persist-mode)
@@ -473,33 +459,94 @@
   (prescient-aggressive-file-save t)
   (prescient-save-file (expand-file-name "prescient-save.el" my:d:tmp))
   (prescient-history-length 5000))
-;; counsel
-(use-package counsel
+;; marginalia - Marginalia in the minibuffer
+(use-package marginalia
   :ensure t
-  :diminish
-  :hook (ivy-mode . counsel-mode)
-  :bind (("M-x" . counsel-M-x)
-         ("C-x C-f" . counsel-find-file)
-         ("C-x C-r" . counsel-recentf)
-         ("M-y" . counsel-yank-pop)
-         ("C-x b" . counsel-switch-buffer)
-         ("M-r" . counsel-rg))
+  ;; Bind `marginalia-cycle' locally in the minibuffer.  To make the binding
+  ;; available in the *Completions* buffer, add it to the
+  ;; `completion-list-mode-map'.
+  :bind (:map minibuffer-local-map
+         ("M-A" . marginalia-cycle))
   :custom
-  (counsel-yank-pop-separator "\n--------\n")
-  (kill-ring-max 1000)
-  :config
-  (setq ivy-initial-inputs-alist '((t . "")))
-  (use-package counsel-edit-mode
-    :ensure t
-    :config
-    (counsel-edit-mode-setup-ivy)))
-;; swiper
-(use-package swiper
+  (marginalia-align 'right)
+  :hook (after-init . marginalia-mode))
+;; vertico -- VERTical Interactive COmpletion
+(use-package vertico
   :ensure t
-  :bind (("M-i" . swiper-thing-at-point)
-         :map swiper-map
-         ("C-s" . swiper-isearch)
-         ("C-r" . swiper-isearch-backward)))
+  :hook (after-init . vertico-mode)
+  :custom
+  (vertico-count 30)
+  (vertico-cycle t)
+  ;; (vertico-resize t)
+  (vertico-count-format (cons "%-6s" (concat (nerd-icons-faicon "nf-fa-sort_amount_asc") " (%s/%s) ")))
+  :config
+  (my:enable-mode vertico-multiform-mode)
+  ;; truncate long lines
+  (use-package vertico-truncate
+    :load-path "share"
+    :hook (vertico-mode . vertico-truncate-mode))
+  ;; Prefix current candidate with arrow
+  (defvar +vertico-current-arrow t)
+  (cl-defmethod vertico--format-candidate :around
+    (cand prefix suffix index start &context ((and +vertico-current-arrow
+                                                   (not (bound-and-true-p vertico-flat-mode)))
+                                              (eql t)))
+    (setq cand (cl-call-next-method cand prefix suffix index start))
+    (if (bound-and-true-p vertico-grid-mode)
+        (if (= vertico--index index)
+            ;; (concat #("▶" 0 1 (face vertico-current)) cand)
+            (concat #("▶" 0 1 (face vertico-current)) cand)
+          (concat #("_" 0 1 (display " ")) cand))
+      (if (= vertico--index index)
+          (concat
+           ;; #(" " 0 1 (display (left-fringe right-triangle vertico-current)))
+           #("▶" 0 1 (face vertico-current))
+           cand)
+        ;; cand)
+        (concat "  " cand)
+        )))
+
+  (defvar +vertico-transform-functions nil)
+  (cl-defmethod vertico--format-candidate :around
+    (cand prefix suffix index start &context ((not +vertico-transform-functions) null))
+    (dolist (fun (ensure-list +vertico-transform-functions))
+      (setq cand (funcall fun cand)))
+    (cl-call-next-method cand prefix suffix index start))
+  ;; function to highlight enabled modes similar to counsel-M-x
+  (defun +vertico-highlight-enabled-mode (cmd)
+    "If MODE is enabled, highlight it as font-lock-constant-face."
+    (let ((sym (intern cmd)))
+      (if (or (eq sym major-mode)
+              (and
+               (memq sym minor-mode-list)
+               (boundp sym)))
+          (propertize cmd 'face 'font-lock-constant-face)
+        cmd)))
+  (add-to-list 'vertico-multiform-commands
+               '(execute-extended-command
+                 (+vertico-transform-functions . +vertico-highlight-enabled-mode)))
+  ;; vertico + prescient
+  (use-package vertico-prescient
+    :ensure t
+    :disabled t
+    :config
+    (setq vertico-prescient-override-sorting t
+          vertico-prescient-enable-filtering nil)
+    (my:enable-mode vertico-prescient-mode))
+  )
+;; consult - Consulting completing-read
+(use-package consult
+  :ensure t
+  :bind (("C-x C-r" . consult-recent-file)
+         ("C-x b" . consult-buffer)
+         ("M-y" . yank-pop)
+         ("M-i" . consult-line)
+         ("M-r" . consult-ripgrep))
+  :config
+  (use-package consult-ghq
+    :ensure t
+    :bind (("M-g" . consult-ghq-switch-project))))
+
 ;;;; avy, ace
 ;; avy
 (use-package avy
@@ -514,12 +561,7 @@
   (aw-keys '(?h ?j ?k ?l ?u ?i ?o ?p))
   :custom-face
   (aw-leading-char-face ((t (:height 2.0 :forground "#f1fa8c")))))
-;;;; smex
-(use-package smex
-  :ensure t
-  :custom
-  (smex-history-length 32)
-  (smex-save-file (expand-file-name "smex-items" my:d:tmp)))
+
 ;;;; corfu -- in-buffer completion
 (use-package corfu
   :ensure t
@@ -586,12 +628,12 @@
        (t :style "fa" :icon "code" :face font-lock-warning-face)
        ))
     :config
-    (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter))
-  (use-package corfu-terminal
-    :load-path "share/corfu-terminal"
-    :if (not window-system)
-    :after corfu
-    :hook (global-corfu-mode . corfu-terminal-mode))
+    (push #'nerd-icons-corfu-formatter corfu-margin-formatters))
+  (eval-and-compile
+    (use-package corfu-terminal
+      :load-path "share/corfu-terminal"
+      :if (not window-system)
+      :hook (global-corfu-mode . corfu-terminal-mode)))
   ;;;;; orderless
   (use-package orderless
     :ensure t
@@ -601,7 +643,6 @@
     (orderless-matching-styles '(orderless-flex orderless-literal)))
   (use-package corfu-prescient
     :ensure t
-    :after corfu
     :hook (global-corfu-mode . corfu-prescient-mode)
     :config
     (with-eval-after-load 'orderless
@@ -614,8 +655,8 @@
   ;; used by `completion-at-point'.  The order of the functions matters, the
   ;; first function returning a result wins.  Note that the list of buffer-local
   ;; completion functions takes precedence over the global list.
-  (add-to-list 'completion-at-point-functions #'cape-dabbrev)
   (add-to-list 'completion-at-point-functions #'cape-file)
+  (add-to-list 'completion-at-point-functions #'cape-dabbrev)
   (add-to-list 'completion-at-point-functions #'cape-elisp-block)
   ;;(add-to-list 'completion-at-point-functions #'cape-history)
   ;;(add-to-list 'completion-at-point-functions #'cape-keyword)
@@ -627,111 +668,77 @@
   ;;(add-to-list 'completion-at-point-functions #'cape-elisp-symbol)
   ;;(add-to-list 'completion-at-point-functions #'cape-line)
 )
-;;;; company
-(use-package company
-  :ensure t
-  :disabled t
-  :diminish company-mode
-  :hook (after-init . global-company-mode)
-  ;;(emacs-lisp-mode . ,(lambda () (add-to-list 'company-backends 'company-elisp))))
-  :bind (:map company-active-map
-              ("C-n" . company-select-next)
-              ("C-p" . company-select-previous)
-              ("<tab>" . company-complete-selection)
-              :map company-search-map
-              ("C-n" . company-select-next)
-              ("C-p" . company-select-previous))
-  :custom
-  (company-transformers '(company-sort-by-occurrence company-sort-by-backend-importance))
-  (company-idle-delay 0.05)
-  (company-selection-wrap-around t)
-  (company-minimum-prefix-length 1)
-  (completion-ignore-case t)
-  (company-show-numbers t)
-  (company-dabbrev-other-buffers nil)
-  (company-dabbrev-ignore-case nil)
-  (company-dabbrev-downcase nil)
-  :config
-  (add-hook 'emacs-lisp-mode-hook (lambda () (add-to-list 'company-backends 'company-elisp)))
-  (use-package company-flx
-    :ensure t
-    :hook (company-mode . company-flx-mode))
-  (use-package company-prescient
-    :ensure t
-    :hook (company-mode . company-prescient-mode))
-  (use-package company-box
-    :ensure t
-    :no-require t
-    :hook (company-mode . company-box-mode)
-    :config
-    (setq company-box-icons-nerd-icons
-          `((Unknown . ,(nerd-icons-faicon "nf-fa-code"))
-            (Text . ,(nerd-icons-faicon "nf-fa-text_width"))
-            (Method . ,(nerd-icons-faicon "nf-fa-cube"))
-            (Function . ,(nerd-icons-faicon "nf-fa-cube"))
-            (Constructor . ,(nerd-icons-faicon "nf-fa-cube"))
-            (Field . ,(nerd-icons-faicon "nf-fa-tag"))
-            (Variable . ,(nerd-icons-faicon "nf-fa-tag"))
-            (Class . ,(nerd-icons-faicon "nf-fa-cogs"))
-            (Interface . ,(nerd-icons-faicon "nf-fa-italic"))
-            (Module . ,(nerd-icons-faicon "nf-fa-code"))
-            (Property . ,(nerd-icons-faicon "nf-fa-wrench"))
-            (Unit . ,(nerd-icons-faicon "nf-fa-street_view"))
-            (Value . ,(nerd-icons-faicon "nf-fa-tag"))
-            (Enum . ,(nerd-icons-faicon "nf-fa-book"))
-            (Keyword . ,(nerd-icons-faicon "nf-fa-key"))
-            (Snippet . ,(nerd-icons-faicon "nf-fa-expand"))
-            (Color . ,(nerd-icons-faicon "nf-fae-palette_color"))
-            (File . ,(nerd-icons-faicon "nf-fa-file"))
-            (Reference . ,(nerd-icons-faicon "nf-fa-street_view"))
-            (Folder . ,(nerd-icons-faicon "nf-fa-folder_open"))
-            (EnumMember . ,(nerd-icons-faicon "nf-fa-book"))
-            (Constant . ,(nerd-icons-faicon "nf-fa-bars"))
-            (Struct . ,(nerd-icons-faicon "nf-fa-cogs"))
-            (Event . ,(nerd-icons-faicon "nf-fa-bolt"))
-            (Operator . ,(nerd-icons-faicon "nf-fa-street_view"))
-            (TypeParameter . ,(nerd-icons-faicon "nf-fa-cogs"))
-            (Template . ,(nerd-icons-faicon "nf-fa-code_fork"))
-            ))
-    (setq company-box-icons-alist 'company-box-icons-nerd-icons)
-    (setq company-box-icons-unknown 'fa_question_circle)
-    (setq company-box-icons-elisp
-          '((fa_tag :face font-lock-function-name-face) ;; Function
-            (fa_cog :face font-lock-variable-name-face) ;; Variable
-            (fa_cube :face font-lock-constant-face) ;; Feature
-            (md_color_lens :face font-lock-doc-face))) ;; Face
-    (setq company-box-icons-yasnippet 'fa_bookmark)
-    (setq company-box-icons-lsp
-          '((1 . fa_text_height) ;; Text
-            (2 . (fa_tags :face font-lock-function-name-face)) ;; Method
-            (3 . (fa_tag :face font-lock-function-name-face)) ;; Function
-            (4 . (fa_tag :face font-lock-function-name-face)) ;; Constructor
-            (5 . (fa_cog :foreground "#FF9800")) ;; Field
-            (6 . (fa_cog :foreground "#FF9800")) ;; Variable
-            (7 . (fa_cube :foreground "#7C4DFF")) ;; Class
-            (8 . (fa_cube :foreground "#7C4DFF")) ;; Interface
-            (9 . (fa_cube :foreground "#7C4DFF")) ;; Module
-            (10 . (fa_cog :foreground "#FF9800")) ;; Property
-            (11 . md_settings_system_daydream) ;; Unit
-            (12 . (fa_cog :foreground "#FF9800")) ;; Value
-            (13 . (md_storage :face font-lock-type-face)) ;; Enum
-            (14 . (md_closed_caption :foreground "#009688")) ;; Keyword
-            (15 . md_closed_caption) ;; Snippet
-            (16 . (md_color_lens :face font-lock-doc-face)) ;; Color
-            (17 . fa_file_text_o) ;; File
-            (18 . md_refresh) ;; Reference
-            (19 . fa_folder_open) ;; Folder
-            (20 . (md_closed_caption :foreground "#009688")) ;; EnumMember
-            (21 . (fa_square :face font-lock-constant-face)) ;; Constant
-            (22 . (fa_cube :face font-lock-type-face)) ;; Struct
-            (23 . fa_calendar) ;; Event
-            (24 . fa_square_o) ;; Operator
-            (25 . fa_arrows)) ;; TypeParameter
-          ))
-  ;; (use-package company-quickhelp
-  ;;   :ensure t
-  ;;   :hook (company-mode . company-quickhelp-mode))
-  )
+
+;; (use-package company-box
+;;   :ensure t
+;;   :disabled t
+;;   :no-require t
+;;   :hook (company-mode . company-box-mode)
+;;   :config
+;;   (setq company-box-icons-nerd-icons
+;;         `((Unknown . ,(nerd-icons-faicon "nf-fa-code"))
+;;           (Text . ,(nerd-icons-faicon "nf-fa-text_width"))
+;;           (Method . ,(nerd-icons-faicon "nf-fa-cube"))
+;;           (Function . ,(nerd-icons-faicon "nf-fa-cube"))
+;;           (Constructor . ,(nerd-icons-faicon "nf-fa-cube"))
+;;           (Field . ,(nerd-icons-faicon "nf-fa-tag"))
+;;           (Variable . ,(nerd-icons-faicon "nf-fa-tag"))
+;;           (Class . ,(nerd-icons-faicon "nf-fa-cogs"))
+;;           (Interface . ,(nerd-icons-faicon "nf-fa-italic"))
+;;           (Module . ,(nerd-icons-faicon "nf-fa-code"))
+;;           (Property . ,(nerd-icons-faicon "nf-fa-wrench"))
+;;           (Unit . ,(nerd-icons-faicon "nf-fa-street_view"))
+;;           (Value . ,(nerd-icons-faicon "nf-fa-tag"))
+;;           (Enum . ,(nerd-icons-faicon "nf-fa-book"))
+;;           (Keyword . ,(nerd-icons-faicon "nf-fa-key"))
+;;           (Snippet . ,(nerd-icons-faicon "nf-fa-expand"))
+;;           (Color . ,(nerd-icons-faicon "nf-fae-palette_color"))
+;;           (File . ,(nerd-icons-faicon "nf-fa-file"))
+;;           (Reference . ,(nerd-icons-faicon "nf-fa-street_view"))
+;;           (Folder . ,(nerd-icons-faicon "nf-fa-folder_open"))
+;;           (EnumMember . ,(nerd-icons-faicon "nf-fa-book"))
+;;           (Constant . ,(nerd-icons-faicon "nf-fa-bars"))
+;;           (Struct . ,(nerd-icons-faicon "nf-fa-cogs"))
+;;           (Event . ,(nerd-icons-faicon "nf-fa-bolt"))
+;;           (Operator . ,(nerd-icons-faicon "nf-fa-street_view"))
+;;           (TypeParameter . ,(nerd-icons-faicon "nf-fa-cogs"))
+;;           (Template . ,(nerd-icons-faicon "nf-fa-code_fork"))
+;;           ))
+;;   (setq company-box-icons-alist 'company-box-icons-nerd-icons)
+;;   (setq company-box-icons-unknown 'fa_question_circle)
+;;   (setq company-box-icons-elisp
+;;         '((fa_tag :face font-lock-function-name-face) ;; Function
+;;           (fa_cog :face font-lock-variable-name-face) ;; Variable
+;;           (fa_cube :face font-lock-constant-face) ;; Feature
+;;           (md_color_lens :face font-lock-doc-face))) ;; Face
+;;   (setq company-box-icons-yasnippet 'fa_bookmark)
+;;   (setq company-box-icons-lsp
+;;         '((1 . fa_text_height) ;; Text
+;;           (2 . (fa_tags :face font-lock-function-name-face)) ;; Method
+;;           (3 . (fa_tag :face font-lock-function-name-face)) ;; Function
+;;           (4 . (fa_tag :face font-lock-function-name-face)) ;; Constructor
+;;           (5 . (fa_cog :foreground "#FF9800")) ;; Field
+;;           (6 . (fa_cog :foreground "#FF9800")) ;; Variable
+;;           (7 . (fa_cube :foreground "#7C4DFF")) ;; Class
+;;           (8 . (fa_cube :foreground "#7C4DFF")) ;; Interface
+;;           (9 . (fa_cube :foreground "#7C4DFF")) ;; Module
+;;           (10 . (fa_cog :foreground "#FF9800")) ;; Property
+;;           (11 . md_settings_system_daydream) ;; Unit
+;;           (12 . (fa_cog :foreground "#FF9800")) ;; Value
+;;           (13 . (md_storage :face font-lock-type-face)) ;; Enum
+;;           (14 . (md_closed_caption :foreground "#009688")) ;; Keyword
+;;           (15 . md_closed_caption) ;; Snippet
+;;           (16 . (md_color_lens :face font-lock-doc-face)) ;; Color
+;;           (17 . fa_file_text_o) ;; File
+;;           (18 . md_refresh) ;; Reference
+;;           (19 . fa_folder_open) ;; Folder
+;;           (20 . (md_closed_caption :foreground "#009688")) ;; EnumMember
+;;           (21 . (fa_square :face font-lock-constant-face)) ;; Constant
+;;           (22 . (fa_cube :face font-lock-type-face)) ;; Struct
+;;           (23 . fa_calendar) ;; Event
+;;           (24 . fa_square_o) ;; Operator
+;;           (25 . fa_arrows)) ;; TypeParameter
+;;         ))
 
 ;;;; Tab
 ;; Tab-bar-mode or Elscreen
@@ -958,27 +965,6 @@ Call this on `flyspell-incorrect-hook'."
   (undo-tree-history-directory-alist `(("." . ,(expand-file-name "undohist" my:d:tmp))))
   (undo-tree-visualizer-timestamps t))
 ;;;; yasnippet
-;; (use-package yasnippet
-;;   :ensure t
-;;   :diminish yas-minor-mode
-;;   :after company
-;;   :hook (prog-mode . yas-global-mode)
-;;   :config
-;;   (defvar company-mode/enable-yas t)
-;;   (defun company-mode/backend-with-yas (backend)
-;;     (if (or (not company-mode/enable-yas) (and (listp backend) (member 'company-yasnippet backend)))
-;;         backend
-;;       (append (if (consp backend) backend (list backend))
-;;               '(:with company-yasnippet))))
-;;   (use-package yasnippet-snippets
-;;     :ensure t)
-;;   (add-to-list 'yas-snippet-dirs (expand-file-name "snippets" my:d:share))
-;;   (add-hook
-;;    'yas-minor-mode
-;;    (lambda ()
-;;      (setq-local
-;;       company-backends
-;;       (mapcar #'company-mode/backend-with-yas company-backends)))))
 (use-package yasnippet
   :ensure t
   :diminish yas-minor-mode
@@ -1009,24 +995,20 @@ Call this on `flyspell-incorrect-hook'."
   :mode ((".gitconfig" . gitconfig-mode)
          (".gitignore" . gitignore-mode)
          (".gitattributes" . gitattributes-mode)))
-(use-package counsel-ghq
-  ;; :quelpa (counsel-ghq :fetcher github :repo windymelt/counsel-ghq)
-  :load-path "share/counsel-ghq"
-  :bind ("M-g" . counsel-ghq))
 
 ;;; Programming Language
 ;;;; projectile
 (use-package projectile
   :ensure t
-  :after counsel
   :hook (prog-mode . projectile-mode)
+  :bind (:map projectile-mode-map
+              ("C-c p" . projectile-command-map)
+              ("C-c C-p" . projectile-command-map))
   :custom
   (projectile-enable-caching t)
-  (projectile-completion-system 'ivy)
   (projectile-cache-file (expand-file-name "projectile.cache" my:d:tmp))
   (projectile-known-projects-file (expand-file-name "projectile-bookmarks.eld" my:d:tmp))
   :config
-  (my:enable-mode projectile-mode)
   (defun git-rsync-push ()
     (interactive)
     (if (executable-find "git-rsync")
@@ -1044,17 +1026,10 @@ Call this on `flyspell-incorrect-hook'."
         (add-hook 'after-save-hook #'git-rsync-push nil nil)
         (setq auto-git-rsync t)
         (message "auto-git-rsync is enabled."))))
-
-  (use-package counsel-projectile
+  (use-package consult-projectile
     :ensure t
-    :after (counsel projectile)
-    :bind
-    (:map projectile-mode-map
-          ("M-p" . projectile-command-map)
-          ("C-c p" . projectile-command-map)
-          ("C-c C-p" . projectile-command-map)
-          :map projectile-command-map
-          ("s" . counsel-projectile-rg))))
+    :bind (:map projectile-mode-map
+                ("M-p" . consult-projectile))))
 
 ;;;; Neotree
 (use-package neotree
@@ -1081,14 +1056,16 @@ Call this on `flyspell-incorrect-hook'."
 ;;;; LSP
 (use-package eglot
   :ensure t
+  :defer t
   :bind (("M-/" . xref-find-references))
   :hook
   ((sh-base-mode c++-ts-mode rust-ts-mode go-ts-mode lua-ts-mode) . eglot-ensure)
   (python-base-mode . (lambda () (poetry-track-virtualenv) (eglot-ensure)))
+  :custom
+  (eglot-events-buffer-config 0)
+  (eglot-autoshutdown t)
   :config
-  (add-to-list 'eglot-server-programs '(python-base-mode . ("pyright-langserver" "--stdio")))
-  (setq eglot-events-buffer-size 0)
-  (setq eglot-autoshutdown t))
+  (add-to-list 'eglot-server-programs '(python-base-mode . ("pyright-langserver" "--stdio"))))
 (use-package lsp-mode
   :ensure t
   :disabled t
@@ -1171,99 +1148,57 @@ Call this on `flyspell-incorrect-hook'."
 ;; python-mode
 (use-package python-mode
   :ensure t
-  :mode (("\\.py$" . python-mode))
+  :defer t
   :config
-  (push '("Pyakefile" . python-mode) auto-mode-alist)
   (setq py-outline-minor-mode-p nil)
   (setq py-current-defun-show t)
   (setq py-jump-on-exception nil)
-  (setq py-current-defun-delay 1000)
+  (setq py-current-defun-delay 1000))
+;; poetry
+(use-package poetry
+  :defer t
+  :hook (python-base-mode . poetry-tracking-mode)
+  :custom
+  (poetry-tracking-strategy 'projectile)
+  :config
   ;; python-insert-docstring: for google-style docstring
   (use-package python-insert-docstring
     :ensure t
     :bind (:map python-mode-map
                 ("C-c i" . python-insert-docstring-with-google-style-at-point)))
-  )
-;; python-black
-(use-package python-black
-  :ensure t)
-;; python-isort
-(use-package python-isort
-  :ensure t
-  :config
-  (setq python-isort-arguments
-        (append python-isort-arguments '("--profile" "black"))))
-(eval-and-compile
-  (defun python-formatter ()
-    (interactive)
-    (poetry-tracking-mode)
-    (python-isort-buffer)
-    (python-black-buffer)
-    (message "Formatted."))
-  (bind-keys :map python-base-mode-map
-             ("C-c f" . python-formatter)
-             ("C-c C-f" . python-formatter)
-             :map python-mode-map
-             ("C-c f" . python-formatter)
-             ("C-c C-f" . python-formatter)))
-;; poetry
-(use-package poetry
-  ;; :hook (python-base-mode . poetry-tracking-mode)
-  :custom
-  (poetry-tracking-strategy 'projectile))
-;; lsp-pyright
-(use-package lsp-pyright
-  ;; npm install -g pyright
-  :ensure t
-  :disabled t
-  :custom
-  (lsp-pyright-multi-root nil)
-  :config
-  ;; (setq lsp-pyright-multi-root nil)
-  (dolist
-      (exclude-dirs
-       `("[/\\\\]\\.venv\\'"
-         "[/\\\\]\\.cache\\'"
-         "[/\\\\]\\.mypy_cache\\'"
-         "[/\\\\]__pycache__\\'"))
-    (push exclude-dirs lsp-file-watch-ignored))
-  (add-hook
-   'python-mode-hook
-   (lambda ()
-     (progn
-       (poetry-tracking-mode)
-       (poetry-track-virtualenv)
-       (setq lsp-pyright-venv-path python-shell-virtualenv-root)
-       (setq lsp-pyright-venv-directory python-shell-virtualenv-root)
-       (lsp-deferred)))))
-
-(defvar py-auto-format nil)
-(defun toggle-py-auto-format ()
-  (interactive)
-  (if py-auto-format
-      (progn
-        (message "Auto formatting is disabled.")
-        (remove-hook 'before-save-hook #'python-formatter t)
-        (setq py-auto-format nil))
-    (progn
-      (message "Auto formatting is enabled.")
-      (add-hook 'before-save-hook #'python-formatter nil t)
-      (setq py-auto-format t))))
-
-;; quickrun
-(use-package quickrun
-  :ensure t
-  :disabled t
-  :config
-  (quickrun-add-command "python"
-                        '((:command . "python"))
-                        ;; :override t)
-                        )
-  (bind-keys :map python-base-mode-map
-             ("C-c q" . quickrun))
-  (use-package popwin
+  ;; python-black
+  (use-package python-black
+    :ensure t)
+  ;; python-isort
+  (use-package python-isort
+    :ensure t
     :config
-    (push '("*quickrun*") popwin:special-display-config)))
+    (setq python-isort-arguments
+          (append python-isort-arguments '("--profile" "black")))
+    (defun python-formatter ()
+      (interactive)
+      (poetry-tracking-mode)
+      (python-isort-buffer)
+      (python-black-buffer)
+      (message "Formatted."))
+    (bind-keys :map python-base-mode-map
+               ("C-c f" . python-formatter)
+               ("C-c C-f" . python-formatter)
+               :map python-mode-map
+               ("C-c f" . python-formatter)
+               ("C-c C-f" . python-formatter)))
+  (defvar py-auto-format nil)
+  (defun toggle-py-auto-format ()
+    (interactive)
+    (if py-auto-format
+        (progn
+          (message "Auto formatting is disabled.")
+          (remove-hook 'before-save-hook #'python-formatter t)
+          (setq py-auto-format nil))
+      (progn
+        (message "Auto formatting is enabled.")
+        (add-hook 'before-save-hook #'python-formatter nil t)
+        (setq py-auto-format t)))))
 
 ;;;; bison, flex
 (use-package bison-mode
@@ -1635,9 +1570,7 @@ Call this on `flyspell-incorrect-hook'."
   (recentf-exclude '(".recentf" "COMMIT_EDITMSG" "/\\.emacs\\.d/elpa/"))
   :hook (after-init . recentf-mode)
   :config
-  (run-with-idle-timer 30 t (lambda () (with-suppressed-message (recentf-save-list))))
-  (use-package recentf-ext
-    :ensure t))
+  (run-with-idle-timer 30 t (lambda () (with-suppressed-message (recentf-save-list)))))
 ;;;; mwim
 (use-package mwim
   :ensure t
@@ -1713,15 +1646,16 @@ Call this on `flyspell-incorrect-hook'."
   :config
   ;; Workaround of not working counsel-yank-pop
   ;; https://github.com/akermu/emacs-libvterm#counsel-yank-pop-doesnt-work
-  (defun vterm-counsel-yank-pop-action (orig-fun &rest args)
-    (if (equal major-mode 'vterm-mode)
-        (let ((inhibit-read-only t)
-              (yank-undo-function (lambda (_start _end) (vterm-undo))))
-          (cl-letf (((symbol-function 'insert-for-yank)
-                     (lambda (str) (vterm-send-string str t))))
-            (apply orig-fun args)))
-      (apply orig-fun args)))
-  (advice-add 'counsel-yank-pop-action :around #'vterm-counsel-yank-pop-action))
+  ;; (defun vterm-counsel-yank-pop-action (orig-fun &rest args)
+  ;;   (if (equal major-mode 'vterm-mode)
+  ;;       (let ((inhibit-read-only t)
+  ;;             (yank-undo-function (lambda (_start _end) (vterm-undo))))
+  ;;         (cl-letf (((symbol-function 'insert-for-yank)
+  ;;                    (lambda (str) (vterm-send-string str t))))
+  ;;           (apply orig-fun args)))
+  ;;     (apply orig-fun args)))
+  ;; (advice-add 'counsel-yank-pop-action :around #'vterm-counsel-yank-pop-action))
+  )
 (use-package vterm-toggle
   :ensure t
   :bind ("<f12>" . vterm-toggle)
