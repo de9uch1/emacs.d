@@ -6,8 +6,8 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi@ai.cs.ehime-u.ac.jp>
 ;; Created: 2018-05-26
-;; Modified: 2022-06-10
-;; Version: 0.0.4
+;; Modified: 2024-01-31
+;; Version: 0.0.5
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
 ;; Namespace: my:
@@ -48,6 +48,7 @@
       gc-cons-threshold most-positive-fixnum
       read-process-output-max 67108864  ; (* 64 1024 1024)
       )
+(setq garbage-collection-messages nil)
 (add-hook
  'after-init-hook
  `(lambda ()
@@ -58,6 +59,17 @@
     )
  t)
 (run-with-idle-timer 60.0 t #'garbage-collect)
+;;; Disable features
+;; *.~ / .#* no back up
+(setq make-backup-files nil
+      auto-save-default nil
+      auto-save-list-file-prefix nil
+      create-lockfiles nil)
+;;; Common settings
+;; time-locale
+(setq system-time-locale "C")
+;; indent
+(setq indent-tabs-mode nil)
 ;;; Appearance
 ;;;; Disable noisy effects
 (push '(menu-bar-lines     . nil) default-frame-alist)
@@ -73,12 +85,15 @@
 (setq site-run-file nil)
 (setq use-file-dialog nil)
 (setq package-enable-at-startup nil)
-(setq package-quickstart nil)
+(setq visible-bell nil)
+(setq ring-bell-function 'ignore)
+(setq history-delete-duplicates t)
 ;;;; for GUI
 (advice-add 'x-apply-session-resources :override 'ignore)
 ;; window size
-(push '(height . 68) default-frame-alist)
+(push '(height . 60) default-frame-alist)
 (push '(width . 144) default-frame-alist)
+(push '(alpha-background . 95) default-frame-alist)
 (setq initial-frame-alist default-frame-alist)
 
 (provide 'early-init)

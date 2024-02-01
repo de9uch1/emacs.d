@@ -6,8 +6,8 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2024-01-14
-;; Version: 0.0.4
+;; Modified: 2024-02-01
+;; Version: 0.0.5
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
 ;; Namespace: my:
@@ -73,54 +73,15 @@
           (lambda ()
             (message "init time: %.1f msec"
                      (* (float-time (time-subtract after-init-time before-init-time)) 1000))))
-;;;; Tuning and Speed Up:
-(defconst early-init-compat (eval-when-compile (version<= "27.1" emacs-version)))
-(unless early-init-compat
-  ;; Disable magic file name at initialize
-  (defconst my:saved-file-name-handler-alist file-name-handler-alist)
-  (setq file-name-handler-alist nil)
-  (add-hook
-   'emacs-startup-hook
-   (lambda ()
-     (setq file-name-handler-alist my:saved-file-name-handler-alist)))
-  ;; Avoid garbage collection in initialize
-  (setq gc-cons-percentage 1.0
-        gc-cons-threshold most-positive-fixnum
-        read-process-output-max (* 64 1024 1024))
-  (add-hook
-   'after-init-hook
-   `(lambda ()
-      (setq gc-cons-threshold (* 128 1024 1024)
-            gc-cons-percentage 0.6
-            read-process-output-max (* 16 1024 1024))) t)
-  (run-with-idle-timer 60.0 t #'garbage-collect))
-
-;;;; cl-lib -- load Common Lisp library:
-(eval-when-compile (require 'cl-lib nil t))
-(eval-and-compile
-  (setq byte-compile-warnings '(not cl-functions free-vars docstrings unresolved))
-  (if (and (fboundp 'native-comp-available-p)
-           (native-comp-available-p))
-      (setq native-comp-speed 3
-            native-comp-async-jobs-number 4
-            native-comp-async-report-warnings-errors 'silent)))
-(setq package-native-compile t)
-(native-compile-async (locate-user-emacs-file "early-init.el"))
-(native-compile-async (locate-user-emacs-file "init.el"))
-
-;;; System Local
-;; (defvar my:distrib-id nil)
-;; (defvar my:gentoo-p nil)
-;; (eval-and-compile
-;;   (when (file-exists-p "/etc/gentoo-release")
-;;     (setq my:distrib-id "gentoo")
-;;     (setq my:gentoo-p t)))
-
 ;;; My Functions and Macros -- prefix "my:"
 (defmacro my:if! (pred then &rest else)
   "Expand if-statement on the compile time."
   (declare (indent 2))
   (if (eval pred) then `(progn ,@else)))
+(defmacro my:unless! (pred &rest body)
+  "Expand if-statement on the compile time."
+  (declare (indent 1))
+  (if (not (eval pred)) `(progn ,@body)))
 (defmacro my:path-exists? (path)
   "Return PATH if PATH exists else nil."
   (if (file-exists-p path) path nil))
@@ -149,6 +110,49 @@
         (apply func args)
       (advice-remove 'message #'silence))))
 
+;;; Tuning and Speed Up:
+(eval-and-compile (defconst early-init-compat (version<= "27.1" emacs-version)))
+(my:unless! early-init-compat
+  ;; Disable magic file name at initialize
+  (defconst my:saved-file-name-handler-alist file-name-handler-alist)
+  (setq file-name-handler-alist nil)
+  (add-hook
+   'emacs-startup-hook
+   (lambda ()
+     (setq file-name-handler-alist my:saved-file-name-handler-alist)))
+  ;; Avoid garbage collection in initialize
+  (setq gc-cons-percentage 1.0
+        gc-cons-threshold most-positive-fixnum
+        read-process-output-max (* 64 1024 1024))
+  (add-hook
+   'after-init-hook
+   `(lambda ()
+      (setq gc-cons-threshold (* 128 1024 1024)
+            gc-cons-percentage 0.6
+            read-process-output-max (* 16 1024 1024))) t)
+  (run-with-idle-timer 60.0 t #'garbage-collect))
+
+;;;; cl-lib -- load Common Lisp library:
+(eval-when-compile (require 'cl-lib nil t))
+(eval-and-compile
+  (setq byte-compile-warnings '(not cl-functions free-vars docstrings unresolved))
+  (my:if! (and (fboundp 'native-comp-available-p)
+               (native-comp-available-p))
+      (setq native-comp-speed 3
+            native-comp-async-jobs-number 4
+            native-comp-async-report-warnings-errors 'silent)))
+(setq package-native-compile t)
+;; (native-compile-async (locate-user-emacs-file "early-init.el"))
+;; (native-compile-async (locate-user-emacs-file "init.el"))
+
+;;; System Local
+;; (defvar my:distrib-id nil)
+;; (defvar my:gentoo-p nil)
+;; (eval-and-compile
+;;   (when (file-exists-p "/etc/gentoo-release")
+;;     (setq my:distrib-id "gentoo")
+;;     (setq my:gentoo-p t)))
+
 ;;; My Configurations
 ;; Name
 (setq user-full-name "Hiroyuki Deguchi")
@@ -162,8 +166,8 @@
 (eval-and-compile (defconst my:d:tmp (my:locate-user-emacs-file "tmp")))
 (eval-and-compile (defconst my:d:share (my:locate-user-emacs-file "share")))
 ;; Nextcloud
-(defconst my:d:nextcloud
-  (eval-when-compile
+(eval-and-compile
+  (defconst my:d:nextcloud
     (let ((d (my:locate-home "Nextcloud")))
       (if (file-exists-p d)
           d
@@ -178,6 +182,8 @@
      ("melpa-stable" . "https://stable.melpa.org/packages/")
      ("gnu" . "https://elpa.gnu.org/packages/")
      ("nongnu" . "https://elpa.nongnu.org/nongnu/")))
+  (setq package-quickstart t)
+  (setq package-quickstart-file (expand-file-name "package-quickstart.el" my:d:tmp))
   (require 'package nil t)
   (package-initialize))
 ;;;; use-package.el
@@ -211,7 +217,7 @@
 (when window-system
   (let* ((font '("PlemolJP Console NF" . 16))
          ;; (font '("Cica" . 16))
-         (spec (font-spec :family (car font) :size (cdr font))))
+         (spec (font-spec :family (car font) :size (cdr font) :weight 'medium)))
     (set-face-attribute 'default nil :font spec)
     (set-fontset-font nil 'ascii spec nil 'append)
     (set-fontset-font nil 'japanese-jisx0213.2004-1 spec nil 'append))
@@ -242,7 +248,7 @@
   (doom-themes-neotree-folder-size 1.0)
   :config
   (load-theme 'doom-dracula t)
-  (doom-themes-neotree-config)
+  ;; (doom-themes-neotree-config)
   (doom-themes-org-config))
 ;;;; Modeline
 ;; doom-modeline
@@ -251,8 +257,8 @@
   :custom
   (doom-modeline-icon t)
   (doom-modeline-project-detection 'projectile)
+  :hook (after-init . doom-modeline-mode)
   :config
-  (my:enable-mode doom-modeline-mode)
   (my:enable-mode column-number-mode)
   (doom-modeline-def-modeline 'main
     '(bar workspace-name window-number modals matches buffer-info remote-host buffer-position word-count parrot selection-info)
@@ -263,7 +269,15 @@
   :hook
   ((neotree-mode imenu-list-minor-mode) . hide-mode-line-mode))
 ;;;; Misc.
-(unless early-init-compat
+(my:unless! early-init-compat
+  ;; disable features
+  (setq make-backup-files nil
+        auto-save-default nil
+        auto-save-list-file-prefix (expand-file-name ".saves-" my:d:tmp))
+  ;; common settings
+  (setq system-time-locale "C")
+  (setq-default tab-width 4)
+  (setq history-delete-duplicates t)
   ;; disable menu-bar, tool-bar, scroll-bar
   (my:disable-mode menu-bar-mode)
   (my:disable-mode tool-bar-mode)
@@ -272,6 +286,9 @@
   (push '(cursor-type . bar) default-frame-alist)
   ;; No startup screen
   (setq inhibit-startup-screen t)
+  ;; Bell
+  (setq visible-bell nil)
+  (setq ring-bell-function 'ignore)
   ;; window size
   (when window-system
     (pcase (system-name)
@@ -282,7 +299,7 @@
 (setq-default truncate-lines t)
 (add-hook 'org-mode-hook (lambda () (setq-local truncate-lines nil)))
 ;; display line number
-(if (eval-when-compile (version<= "26.1" emacs-version))
+(my:if! (eval-and-compile (version<= "26.1" emacs-version))
     (progn
       (global-display-line-numbers-mode)
       (setq-default display-line-numbers-width 4))
@@ -313,7 +330,6 @@
 ;;;; Language, Locale and Coding System
 (set-locale-environment "en_US.UTF-8")
 ;; (setq-default file-name-coding-system 'utf-8-unix)
-(setq-default system-time-locale "C")
 (prefer-coding-system 'utf-8-unix)
 (set-default-coding-systems 'utf-8-unix)
 ;; (set-selection-coding-system 'utf-8-unix)
@@ -333,16 +349,15 @@
 (use-package tp-mode
   :if (eval-and-compile
         (and window-system
-             (not (getenv "WSL_INTEROP"))))
+             (or (not (getenv "WSL_INTEROP"))
+                 (not (eq window-system 'x)))))
   :load-path "share"
-  :config
-  (tp-mode 95))
-;; Bell
-;; Alternative flash the screen
-(setq visible-bell nil)
-(setq ring-bell-function 'ignore)
+  :commands (tp-mode)
+  :custom
+  (tp-mode-alpha 95)
+  (tp-mode t))
+
 ;; Indent
-(setq-default indent-tabs-mode nil)
 (setq-default tab-width 4)
 ;; key binding
 (bind-keys
@@ -356,10 +371,7 @@
       scroll-margin 0
       scroll-step 1)
 (setq comint-scroll-show-maximum-output t) ; for shell-mode
-;; *.~ / .#* no back up
-(setq make-backup-files nil
-      auto-save-default nil
-      auto-save-list-file-prefix (expand-file-name ".saves-" my:d:tmp))
+
 ;; definition temporary files and shared files
 (setq url-configuration-directory (expand-file-name "url" my:d:tmp)
       nsm-settings-file (expand-file-name "network-settings.data" my:d:tmp)
@@ -372,6 +384,7 @@
       savehist-file (expand-file-name "history" my:d:tmp))
 ;; yes or no -> y or n
 (fset 'yes-or-no-p 'y-or-n-p)
+(setq use-short-answers t)
 ;; not add newline at end of buffer
 (setq next-line-add-newlines nil)
 ;; kill whole line when kill line
@@ -379,18 +392,13 @@
 ;; global-auto-revert-mode
 (add-hook 'after-init-hook (lambda () (my:enable-mode global-auto-revert-mode)))
 ;; time-stamp
-(use-package time-stamp
-  :commands (time-stamp)
-  :hook (before-save . #'time-stamp))
+(add-hook 'before-save-hook #'time-stamp)
 ;; tramp
-(use-package tramp
-  :defer t
-  :config
-  (setq tramp-default-method "ssh")
-  (setq tramp-persistency-file-name (expand-file-name "tramp" my:d:tmp)))
+(setq tramp-default-method "ssh"
+      tramp-persistency-file-name (expand-file-name "tramp" my:d:tmp))
 ;; dired
-(use-package dired-aux
-  :defer t)
+;; (use-package dired-aux
+;;   :defer t)
 (setq dired-dwim-target t               ; default copy target in 2 windows
       dired-recursive-copies 'always    ; recursive directory copy
       dired-isearch-filenames t         ; only match filenames
@@ -400,13 +408,23 @@
   :defer t)
 ;; saveplace
 (setq save-place-file (expand-file-name "save-places" my:d:tmp))
+(add-hook 'after-init-hook #'save-place-mode)
 ;; uniquify
 ;; for same name buffer
 (setq uniquify-buffer-name-style 'post-forward-angle-brackets
       uniquify-min-dir-content 1)
-;; XClip
-(when (eq window-system 'x)
-  (setq x-select-enable-clipboard t))
+;; Clipboard
+(setq select-enable-clipboard t)
+(setq select-enable-primary t)
+(use-package xclip
+  :ensure t
+  :custom
+  (xclip-method (or (and xclip-use-pbcopy&paste 'pbpaste)
+					;; (and (executable-find "wl-copy") 'wl-copy)
+					'xclip))
+  :config
+  (defun wl-copy (data) (xclip-set-selection 'clipboard data))
+  (setq interprogram-cut-function 'wl-copy))
 ;; popwin
 (use-package popwin
   :ensure t
@@ -418,8 +436,8 @@
   (add-to-list 'popwin:special-display-config '("*system-packages*"))
   (add-to-list 'popwin:special-display-config '("*Async Shell Command*")))
 ;; popup
-(use-package popup
-  :ensure t)
+;; (use-package popup
+;;   :ensure t)
 ;; move window
 (use-package windmove
   :bind (("M-<left>" . windmove-left)
@@ -466,6 +484,11 @@
   :ensure t
   :hook (after-init . prescient-persist-mode)
   :custom
+  (prescient-filter-method '(initialism literal prefix regexp))
+  (prescient-use-char-folding t)
+  (prescient-use-case-folding 'smart)
+  (prescient-sort-full-matches-first t)
+  (prescient-sort-length-enable nil)
   (prescient-aggressive-file-save t)
   (prescient-save-file (expand-file-name "prescient-save.el" my:d:tmp))
   (prescient-history-length 5000))
@@ -476,7 +499,7 @@
   ;; available in the *Completions* buffer, add it to the
   ;; `completion-list-mode-map'.
   :bind (:map minibuffer-local-map
-         ("M-A" . marginalia-cycle))
+              ("M-A" . marginalia-cycle))
   :custom
   (marginalia-align 'right)
   (marginalia-align-offset (my:if! window-system 0 -1))
@@ -488,6 +511,8 @@
   :custom
   (vertico-count 30)
   (vertico-cycle t)
+  (vertico-preselect 'first)
+  (vertico-sort-function #'vertico-sort-alpha)
   ;; (vertico-resize t)
   (vertico-count-format (cons "%-6s" (concat (nerd-icons-faicon "nf-fa-sort_amount_asc") " (%s/%s) ")))
   :config
@@ -535,16 +560,11 @@
         cmd)))
   (add-to-list 'vertico-multiform-commands
                '(execute-extended-command
-                 (+vertico-transform-functions . +vertico-highlight-enabled-mode)))
-  ;; vertico + prescient
-  (use-package vertico-prescient
-    :ensure t
-    :disabled t
-    :config
-    (setq vertico-prescient-override-sorting t
-          vertico-prescient-enable-filtering nil)
-    (my:enable-mode vertico-prescient-mode))
-  )
+                 (+vertico-transform-functions . +vertico-highlight-enabled-mode))))
+;; vertico + prescient
+(use-package vertico-prescient
+  :ensure t
+  :hook (prescient-persist-mode . vertico-prescient-mode))
 ;; consult - Consulting completing-read
 (use-package consult
   :ensure t
@@ -552,11 +572,44 @@
          ("C-x b" . consult-buffer)
          ("M-y" . yank-pop)
          ("M-i" . consult-line)
-         ("M-r" . consult-ripgrep))
+         ("M-r" . consult-ripgrep)
+         ("M-e" . consult-isearch-history)
+         :map isearch-mode-map
+         ("M-i" . consult-line)
+         ("M-e" . consult-isearch-history)))
+(use-package consult-ghq
+  :ensure t
+  :bind (("M-g" . consult-ghq-switch-project))
+  :custom
+  (project-switch-commands 'project-find-file))
+;; embark -- Emacs Mini-Buffer Actions Rooted in Keymaps
+(use-package embark
+  :ensure t
+  :bind
+  (("M-a" . embark-act)         ;; pick some comfortable binding
+   ("C-;" . embark-dwim)        ;; good alternative: M-.
+   ("<f1> B" . embark-bindings)) ;; alternative for `describe-bindings'
+  :init
+  ;; Optionally replace the key help with a completing-read interface
+  (setq prefix-help-command #'embark-prefix-help-command)
+
+  ;; Show the Embark target at point via Eldoc. You may adjust the
+  ;; Eldoc strategy, if you want to see the documentation from
+  ;; multiple providers. Beware that using this can be a little
+  ;; jarring since the message shown in the minibuffer can be more
+  ;; than one line, causing the modeline to move up and down:
+
+  ;; (add-hook 'eldoc-documentation-functions #'embark-eldoc-first-target)
+  ;; (setq eldoc-documentation-strategy #'eldoc-documentation-compose-eagerly)
+
   :config
-  (use-package consult-ghq
-    :ensure t
-    :bind (("M-g" . consult-ghq-switch-project))))
+  ;; Hide the mode line of the Embark live/completions buffers
+  (add-to-list 'display-buffer-alist
+               '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
+                 nil
+                 (window-parameters (mode-line-format . none))))
+  (use-package embark-consult
+    :ensure t))
 
 ;;;; avy, ace
 ;; avy
@@ -586,9 +639,9 @@
   (corfu-right-margin-width 1.0)
   (corfu-bar-width 0.5)
   (corfu-auto-prefix 1)
-  (corfu-auto-delay 0.05)
+  (corfu-auto-delay 0.2)
   (corfu-quit-no-match t)
-  (corfu-popupinfo-delay '(0.05 . 0.05))
+  (corfu-popupinfo-delay '(0.2 . 0.2))
   (corfu-popupinfo-resize nil)
   :config
   (use-package nerd-icons-corfu
@@ -640,17 +693,27 @@
        ))
     :config
     (push #'nerd-icons-corfu-formatter corfu-margin-formatters))
-    (use-package corfu-terminal
-      :ensure t
-      :if (not window-system)
-      :hook (global-corfu-mode . corfu-terminal-mode))
+  (use-package corfu-terminal
+    :ensure t
+    :if (not window-system)
+    :hook (global-corfu-mode . corfu-terminal-mode))
   ;;;;; orderless
   (use-package orderless
     :ensure t
     :custom
-    (completion-styles '(orderless basic))
+    (completion-styles '(orderless-fast orderless-flex basic))
     (completion-category-overrides '((file (styles basic partial-completion))))
-    (orderless-matching-styles '(orderless-flex orderless-literal)))
+    ;; (orderless-matching-styles '(orderless-literal orderless-flex))
+	:config
+	(defun orderless-fast-dispatch (word index total)
+	  (and (= index 0) (= total 1) (length< word 5)
+		   `(orderless-regexp . ,(concat "^" (regexp-quote word)))))
+	(orderless-define-completion-style orderless-fast
+	  (orderless-style-dispatchers '(orderless-fast-dispatch))
+	  (orderless-matching-styles '(orderless-literal orderless-regexp)))
+	(orderless-define-completion-style orderless-flex
+	  (orderless-style-dispatchers '(orderless-affix-dispatch))
+	  (orderless-matching-styles '(orderless-literal orderless-flex))))
   (use-package corfu-prescient
     :ensure t
     :hook (global-corfu-mode . corfu-prescient-mode)
@@ -677,7 +740,7 @@
   ;;(add-to-list 'completion-at-point-functions #'cape-dict)
   ;;(add-to-list 'completion-at-point-functions #'cape-elisp-symbol)
   ;;(add-to-list 'completion-at-point-functions #'cape-line)
-)
+  )
 
 ;; (use-package company-box
 ;;   :ensure t
@@ -752,9 +815,8 @@
 
 ;;;; Tab
 ;; Tab-bar-mode or Elscreen
-(defvar tab-bar-p (eval-when-compile (version<= "27" emacs-version)))
 (use-package tab-bar
-  :if tab-bar-p
+  ;;:if (eval-when-compile (version<= "27" emacs-version))
   :hook (after-init . tab-bar-mode)
   :custom
   (tab-bar-new-button-show nil)
@@ -831,26 +893,28 @@
   (eldoc-box-body ((t (:inherit tooltip))))
   :config
   ;; Always retrun 'left so that eldoc-box is aligned to right.
-  (defun eldoc-box--window-side () 'left)
-  (setq eldoc-idle-delay 0.15)
+  ;; (defun eldoc-box--window-side () 'left)
+  (setq eldoc-idle-delay 0.25)
   (setf (alist-get 'left-fringe eldoc-box-frame-parameters) 8
         (alist-get 'right-fringe eldoc-box-frame-parameters) 8))
 ;;; Text
 ;;;; migemo
+(defvar migemo-p (eval-and-compile (executable-find "cmigemo")))
 (use-package migemo
   :ensure t
-  :if (eval-when-compile (executable-find "cmigemo"))
+  :if migemo-p
   :custom
   (migemo-coding-system 'utf-8-unix)
   (migemo-command "cmigemo")
   (migemo-dictionary
-   (eval-when-compile
+   (eval-and-compile
      (or (my:path-exists? "/usr/share/cmigemo/utf-8/migemo-dict")
          (my:path-exists? "/usr/share/migemo/migemo-dict"))))
   (migemo-regex-dictionary nil)
   (migemo-user-dictionary nil)
-  (migemo-isearch-min-length 3)
+  (migemo-isearch-min-length 1)
   (migemo-options '("-q" "--emacs"))
+  (migemo-isearch-enable-p nil)
   :config
   (migemo-init))
 ;;;; IME -- ddskk
@@ -955,17 +1019,16 @@ Call this on `flyspell-incorrect-hook'."
 ;; undohist
 (use-package undohist
   :ensure t
+  :hook (after-init . undohist-initialize)
+  :custom
+  (undohist-directory (expand-file-name "undohist" my:d:tmp))
   :config
-  (setq undohist-directory (expand-file-name "undohist" my:d:tmp))
-  (undohist-initialize)
-
   (defun undohist--auto-recover (orig-fun &rest args)
     "Ignore yes/no prompt in `undohist-recover-1'."
     (cl-letf (((symbol-function 'yes-or-no-p) (lambda (&rest args) t))
               ((symbol-function 'y-or-n-p) (lambda (&rest args) t)))
       (apply orig-fun args)))
-  (advice-add 'undohist-recover-1 :around #'undohist--auto-recover)
-  )
+  (advice-add 'undohist-recover-1 :around #'undohist--auto-recover))
 ;; undo-tree
 (use-package undo-tree
   :ensure t
@@ -995,7 +1058,7 @@ Call this on `flyspell-incorrect-hook'."
   :bind ("C-x g" . magit-status))
 (use-package git-gutter
   :ensure t
-  :hook (prog-mode . global-git-gutter-mode)
+  :hook (after-init . global-git-gutter-mode)
   :custom
   (git-gutter:handled-backends '(git hg))
   :custom-face
@@ -1012,7 +1075,7 @@ Call this on `flyspell-incorrect-hook'."
 ;;;; projectile
 (use-package projectile
   :ensure t
-  :hook (prog-mode . projectile-mode)
+  :hook (after-init . projectile-mode)
   :bind (:map projectile-mode-map
               ("C-c p" . projectile-command-map)
               ("C-c C-p" . projectile-command-map))
@@ -1043,20 +1106,60 @@ Call this on `flyspell-incorrect-hook'."
     :bind (:map projectile-mode-map
                 ("M-p" . consult-projectile))))
 
-;;;; Neotree
-(use-package neotree
+;;;; Treemacs
+(use-package treemacs
   :ensure t
+  :defer t
   :after projectile
-  :bind (("<f8>" . neotree-toggle)
-         :map neotree-mode-map
-         ("a" . neotree-hidden-file-toggle)
-         ("^" . neotree-select-up-node)
-         ("<right>" . neotree-change-root))
+  :bind
+  (:map global-map
+        ("M-0"       . treemacs-select-window)
+        ("C-x t 1"   . treemacs-delete-other-windows)
+        ("C-x t t"   . treemacs)
+        ("<f8>"   . treemacs)
+        ("C-x t d"   . treemacs-select-directory)
+        ("C-x t B"   . treemacs-bookmark)
+        ("C-x t C-t" . treemacs-find-file)
+        ("C-x t M-t" . treemacs-find-tag))
   :custom
-  (neo-theme 'icons)
-  (neo-smart-open t)
-  (neo-keymap-style 'concise)
-  (neo-vc-integration t))
+  (treemacs-sorting 'alphabetic-asc)
+  (treemacs-file-follow-delay 0.05)
+  (treemacs-file-event-delay 50)
+  (treemacs-tag-follow-delay 0.05)
+  (treemacs-deferred-git-apply-delay 0.05)
+  (treemacs-litter-directories
+   '("/node_modules"
+     "/.venv"
+     "/.cask"
+     "/__pycache__"
+     "/.pytest_cache"
+     "/.cache"))
+  (treemacs-persist-file (expand-file-name "treemacs-persist" my:d:tmp))
+  (treemacs-last-error-persist-file (expand-file-name "treemacs-persist-at-last-error" my:d:tmp))
+  :config
+  (setq treemacs--icon-size 16)
+  (my:enable-mode treemacs-project-follow-mode)
+  (my:enable-mode treemacs-follow-mode)
+  (my:enable-mode treemacs-filewatch-mode))
+(use-package treemacs-projectile
+  :ensure t
+  :defer t
+  :after (treemacs projectile))
+;;;; Neotree
+;; (use-package neotree
+;;   :ensure t
+;;   :after projectile
+;;   :defer t
+;;   :bind (("<f8>" . neotree-toggle)
+;;          :map neotree-mode-map
+;;          ("a" . neotree-hidden-file-toggle)
+;;          ("^" . neotree-select-up-node)
+;;          ("<right>" . neotree-change-root))
+;;   :custom
+;;   (neo-theme 'nerd)
+;;   (neo-smart-open t)
+;;   (neo-keymap-style 'concise)
+;;   (neo-vc-integration t))
 
 ;;;; flycheck
 ;; (use-package flycheck
@@ -1069,15 +1172,18 @@ Call this on `flyspell-incorrect-hook'."
 (use-package eglot
   :ensure t
   :defer t
-  :bind (("M-/" . xref-find-references))
+  :bind (("M-/" . xref-find-references)
+         ("C-c r" . eglot-rename))
   :hook
   ((sh-base-mode c++-ts-mode rust-ts-mode go-ts-mode lua-ts-mode) . eglot-ensure)
-  (python-base-mode . (lambda () (poetry-track-virtualenv) (eglot-ensure)))
+  ((python-mode python-ts-mode) . (lambda () (poetry-track-virtualenv) (eglot-ensure)))
   :custom
-  (eglot-events-buffer-config 0)
+  (eglot-events-buffer-config 20000000)
   (eglot-autoshutdown t)
   :config
-  (add-to-list 'eglot-server-programs '(python-base-mode . ("pyright-langserver" "--stdio"))))
+  (add-to-list
+   'eglot-server-programs
+   '((python-mode python-ts-mode) . ("pyright-langserver" "--stdio"))))
 (use-package lsp-mode
   :ensure t
   :disabled t
@@ -1158,26 +1264,29 @@ Call this on `flyspell-incorrect-hook'."
 
 ;;;; python
 ;; python-mode
-(use-package python-mode
-  :ensure t
-  :defer t
-  :config
-  (setq py-outline-minor-mode-p nil)
-  (setq py-current-defun-show t)
-  (setq py-jump-on-exception nil)
-  (setq py-current-defun-delay 1000))
+;; (use-package python-mode
+;;   :ensure t
+;;   :mode (("\\.py$" . python-mode))
+;;   :config
+;;   (setq py-outline-minor-mode-p nil)
+;;   (setq py-current-defun-show t)
+;;   (setq py-jump-on-exception nil)
+;;   (setq py-current-defun-delay 1000))
 ;; poetry
 (use-package poetry
   :ensure t
-  :defer t
-  :hook (python-base-mode . poetry-tracking-mode)
+  :hook (after-init . poetry-tracking-mode)
   :custom
-  (poetry-tracking-strategy 'projectile)
+  (poetry-tracking-strategy 'projectile))
+(use-package python
+  :defer t
   :config
   ;; python-insert-docstring: for google-style docstring
   (use-package python-insert-docstring
     :ensure t
     :bind (:map python-mode-map
+                ("C-c i" . python-insert-docstring-with-google-style-at-point)
+                :map python-ts-mode-map
                 ("C-c i" . python-insert-docstring-with-google-style-at-point)))
   ;; python-black
   (use-package python-black
@@ -1190,16 +1299,18 @@ Call this on `flyspell-incorrect-hook'."
           (append python-isort-arguments '("--profile" "black")))
     (defun python-formatter ()
       (interactive)
-      (poetry-tracking-mode)
+      ;; (poetry-tracking-mode)
+      (poetry-track-virtualenv)
       (python-isort-buffer)
       (python-black-buffer)
       (message "Formatted."))
-    (bind-keys :map python-base-mode-map
-               ("C-c f" . python-formatter)
-               ("C-c C-f" . python-formatter)
-               :map python-mode-map
-               ("C-c f" . python-formatter)
-               ("C-c C-f" . python-formatter)))
+    (bind-keys
+     :map python-mode-map
+     ("C-c f" . python-formatter)
+     ("C-c C-f" . python-formatter)
+     :map python-ts-mode-map
+     ("C-c f" . python-formatter)
+     ("C-c C-f" . python-formatter)))
   (defvar py-auto-format nil)
   (defun toggle-py-auto-format ()
     (interactive)
@@ -1331,16 +1442,9 @@ Call this on `flyspell-incorrect-hook'."
     (bind-key "C-c S" 'scheme-other-window)))
 
 ;;;; Web
-(use-package emmet-mode
+(use-package web-mode
   :ensure t
-  :hook (((sgml-mode css-mode html-mode) . emmet-mode)
-         (emmet-mode . (lambda () (keyboard-translate ?\C-i ?\H-i))))
-  :bind (:map emmet-mode-keymap
-              ("H-i" . emmet-expand-line))
-  :config
-  (use-package web-mode
-    :ensure t)
-  (setq emmet-indentation 2))
+  :hook ((sgml-mode css-mode html-mode) . web-mode))
 
 ;;;; Ruby
 ;; enh-ruby-mode
@@ -1585,7 +1689,22 @@ Call this on `flyspell-incorrect-hook'."
   :config
   ;; Suppress "Cleaning up the recentf...done (0 removed)"
   (advice-add 'recentf-cleanup :around #'suppress-messages)
-  (run-with-idle-timer 30 t (lambda () (let ((save-silently t)) (recentf-save-list)))))
+  (run-with-idle-timer 30 t (lambda () (let ((save-silently t)) (recentf-save-list))))
+
+  ;; From recentf-ext
+  ;;; `recentf' as most recently USED files
+  (defun recentf-push-buffers-in-frame ()
+    (walk-windows
+     (lambda (win)
+       (let ((bfn (buffer-local-value 'buffer-file-name (window-buffer win))))
+         (and bfn (recentf-add-file bfn))))))
+  (add-to-list 'window-configuration-change-hook 'recentf-push-buffers-in-frame)
+  ;;; `recentf' directory
+  (defun recentf-add-dired-directory ()
+    (when (and (stringp dired-directory)
+               (equal "" (file-name-nondirectory dired-directory)))
+      (recentf-add-file dired-directory)))
+  (add-hook 'dired-mode-hook 'recentf-add-dired-directory))
 ;;;; mwim
 (use-package mwim
   :ensure t
@@ -1606,11 +1725,7 @@ Call this on `flyspell-incorrect-hook'."
   :custom
   (highlight-indent-guides-responsive t)
   (highlight-indent-guides-method 'character)
-  (highlight-indent-guides-character ?￨)
-  :config
-  (if window-system
-      (setq highlight-indent-guides-auto-enabled t)
-    (setq highlight-indent-guides-auto-enabled nil)))
+  (highlight-indent-guides-auto-enabled t))
 ;;;; expand-region
 (use-package expand-region
   :ensure t
@@ -1653,6 +1768,7 @@ Call this on `flyspell-incorrect-hook'."
 ;;;; vterm
 (use-package vterm
   :commands (vterm)
+  :defer t
   :ensure t
   :custom
   (vterm-max-scrollback 10000000)

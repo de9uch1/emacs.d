@@ -8,10 +8,19 @@ ELC_TARGETS := $(foreach f,$(wildcard share/*.el),$(basename $(f)).elc)
 .PHONY:	all build
 
 all: build
-build: init.elc early-init.elc $(ELC_TARGETS)
+build: init.elc early-init.elc custom.elc $(ELC_TARGETS) tmp/package-quickstart.elc
 init.elc: init.el
 	emacs --batch -f batch-byte-compile $<
+	emacs --batch -f batch-native-compile $<
 early-init.elc: early-init.el
 	emacs --batch -f batch-byte-compile $<
+	emacs --batch -f batch-native-compile $<
+custom.elc: custom.el
+	emacs --batch -f batch-byte-compile $<
+	emacs --batch -f batch-native-compile $<
 share/%.elc: share/%.el
 	emacs --batch -f batch-byte-compile $<
+	emacs --batch -f batch-native-compile $<
+tmp/package-quickstart.elc: tmp/package-quickstart.el
+	emacs --batch -f batch-byte-compile $<
+	emacs --batch -f batch-native-compile $<
