@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2024-02-01
+;; Modified: 2024-02-05
 ;; Version: 0.0.5
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -903,6 +903,8 @@
 (use-package migemo
   :ensure t
   :if migemo-p
+  :init
+  (add-hook 'after-init-hook #'migemo-init)
   :custom
   (migemo-coding-system 'utf-8-unix)
   (migemo-command "cmigemo")
@@ -914,9 +916,7 @@
   (migemo-user-dictionary nil)
   (migemo-isearch-min-length 1)
   (migemo-options '("-q" "--emacs"))
-  (migemo-isearch-enable-p nil)
-  :config
-  (migemo-init))
+  (migemo-isearch-enable-p nil))
 ;;;; IME -- ddskk
 (use-package skk
   :ensure ddskk
