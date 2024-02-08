@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi@ai.cs.ehime-u.ac.jp>
 ;; Created: 2018-05-26
-;; Modified: 2024-01-31
+;; Modified: 2024-02-07
 ;; Version: 0.0.5
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -68,8 +68,6 @@
 ;;; Common settings
 ;; time-locale
 (setq system-time-locale "C")
-;; indent
-(setq indent-tabs-mode nil)
 ;;; Appearance
 ;;;; Disable noisy effects
 (push '(menu-bar-lines     . nil) default-frame-alist)

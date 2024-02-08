@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2024-02-05
+;; Modified: 2024-02-08
 ;; Version: 0.0.5
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -295,6 +295,8 @@
       (_ (progn (push '(height . 56) default-frame-alist)
                 (push '(width . 117) default-frame-alist))))
     (setq initial-frame-alist default-frame-alist)))
+;; indent
+(setq-default indent-tabs-mode nil)
 ;; truncate lines
 (setq-default truncate-lines t)
 (add-hook 'org-mode-hook (lambda () (setq-local truncate-lines nil)))
@@ -418,6 +420,7 @@
 (setq select-enable-primary t)
 (use-package xclip
   :ensure t
+  :if window-system
   :custom
   (xclip-method (or (and xclip-use-pbcopy&paste 'pbpaste)
 					;; (and (executable-find "wl-copy") 'wl-copy)
@@ -512,8 +515,8 @@
   (vertico-count 30)
   (vertico-cycle t)
   (vertico-preselect 'first)
-  (vertico-sort-function #'vertico-sort-alpha)
-  ;; (vertico-resize t)
+  (vertico-sort-function nil)
+  ;; (vertico-sort-function #'vertico-sort-alpha)
   (vertico-count-format (cons "%-6s" (concat (nerd-icons-faicon "nf-fa-sort_amount_asc") " (%s/%s) ")))
   :config
   (my:enable-mode vertico-multiform-mode)
@@ -530,17 +533,13 @@
     (setq cand (cl-call-next-method cand prefix suffix index start))
     (if (bound-and-true-p vertico-grid-mode)
         (if (= vertico--index index)
-            ;; (concat #("▶" 0 1 (face vertico-current)) cand)
             (concat #("> " 0 1 (face vertico-current)) cand)
           (concat #("_" 0 1 (display " ")) cand))
       (if (= vertico--index index)
           (concat
-           ;; #(" " 0 1 (display (left-fringe right-triangle vertico-current)))
            #("> " 0 1 (face vertico-current))
            cand)
-        ;; cand)
-        (concat "  " cand)
-        )))
+        (concat "  " cand))))
 
   (defvar +vertico-transform-functions nil)
   (cl-defmethod vertico--format-candidate :around
@@ -1173,17 +1172,22 @@ Call this on `flyspell-incorrect-hook'."
   :ensure t
   :defer t
   :bind (("M-/" . xref-find-references)
-         ("C-c r" . eglot-rename))
+         ("C-c r" . eglot-rename)
+		 ("C-c e". eglot))
   :hook
   ((sh-base-mode c++-ts-mode rust-ts-mode go-ts-mode lua-ts-mode) . eglot-ensure)
   ((python-mode python-ts-mode) . (lambda () (poetry-track-virtualenv) (eglot-ensure)))
   :custom
-  (eglot-events-buffer-config 20000000)
+  (eglot-events-buffer-config 0)
   (eglot-autoshutdown t)
+  (eglot-autoreconnect t)
+  (eglot-ignored-server-capabilities '(:documentHighlightProvider))
   :config
   (add-to-list
    'eglot-server-programs
-   '((python-mode python-ts-mode) . ("pyright-langserver" "--stdio"))))
+   '((python-mode python-ts-mode) . ("pyright-langserver" "--stdio"))
+   ;; '((python-mode python-ts-mode) . ("pylsp"))
+   ))
 (use-package lsp-mode
   :ensure t
   :disabled t
@@ -1241,7 +1245,8 @@ Call this on `flyspell-incorrect-hook'."
   :custom
   (treesit-auto-install t)
   :config
-  (setq treesit-auto-langs (delq 'python treesit-auto-langs))
+  (delete 'python treesit-auto-langs)
+  (delete 'bash treesit-auto-langs)
   (global-treesit-auto-mode)
   (treesit-auto-add-to-auto-mode-alist))
 
