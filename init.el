@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2024-03-08
+;; Modified: 2024-05-21
 ;; Version: 0.0.5
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -572,10 +572,8 @@
          ("M-y" . yank-pop)
          ("M-i" . consult-line)
          ("M-r" . consult-ripgrep)
-         ("M-e" . consult-isearch-history)
          :map isearch-mode-map
-         ("M-i" . consult-line)
-         ("M-e" . consult-isearch-history)))
+         ("M-i" . consult-line)))
 (use-package consult-ghq
   :ensure t
   :bind (("M-g" . consult-ghq-switch-project))
@@ -1172,8 +1170,10 @@ Call this on `flyspell-incorrect-hook'."
   :ensure t
   :defer t
   :bind (("M-/" . xref-find-references)
-         ("C-c r" . eglot-rename)
-		 ("C-c e". eglot))
+         :prefix-map eglot-mode-map
+         :prefix "M-e"
+         ("M-e r" . eglot-rename)
+		 ("M-e e". eglot))
   :hook
   ((sh-base-mode c++-ts-mode rust-ts-mode go-ts-mode lua-ts-mode) . eglot-ensure)
   ((python-mode python-ts-mode) . (lambda () (poetry-track-virtualenv) (eglot-ensure)))
@@ -1181,7 +1181,7 @@ Call this on `flyspell-incorrect-hook'."
   (eglot-events-buffer-config 0)
   (eglot-autoshutdown t)
   (eglot-autoreconnect t)
-  (eglot-ignored-server-capabilities '(:documentHighlightProvider))
+  ;; (eglot-ignored-server-capabilities '(:documentHighlightProvider))
   :config
   (add-to-list
    'eglot-server-programs
@@ -1293,41 +1293,64 @@ Call this on `flyspell-incorrect-hook'."
                 ("C-c i" . python-insert-docstring-with-google-style-at-point)
                 :map python-ts-mode-map
                 ("C-c i" . python-insert-docstring-with-google-style-at-point)))
-  ;; python-black
-  (use-package python-black
-    :ensure t)
-  ;; python-isort
-  (use-package python-isort
+  ;; ruff
+  (use-package reformatter
     :ensure t
     :config
-    (setq python-isort-arguments
-          (append python-isort-arguments '("--profile" "black")))
-    (defun python-formatter ()
+    (reformatter-define ruff-format
+      :program "ruff"
+      :args (list "format" "--stdin-filename" (or (buffer-file-name) input-file))
+      :lighter " RuffFmt")
+    (reformatter-define ruff-check
+      :program "ruff"
+      :args (list "check" "--fix" "--extend-select" "I" "--stdin-filename" (or (buffer-file-name) input-file))
+      :lighter " RuffCheck")
+    (defun ruff-fmt ()
       (interactive)
-      ;; (poetry-tracking-mode)
       (poetry-track-virtualenv)
-      (python-isort-buffer)
-      (python-black-buffer)
+      (ruff-check-buffer)
+      (ruff-format-buffer)
       (message "Formatted."))
     (bind-keys
      :map python-mode-map
-     ("C-c f" . python-formatter)
-     ("C-c C-f" . python-formatter)
+     ("C-c C-f" . ruff-fmt)
      :map python-ts-mode-map
-     ("C-c f" . python-formatter)
-     ("C-c C-f" . python-formatter)))
-  (defvar py-auto-format nil)
-  (defun toggle-py-auto-format ()
-    (interactive)
-    (if py-auto-format
-        (progn
-          (message "Auto formatting is disabled.")
-          (remove-hook 'before-save-hook #'python-formatter t)
-          (setq py-auto-format nil))
-      (progn
-        (message "Auto formatting is enabled.")
-        (add-hook 'before-save-hook #'python-formatter nil t)
-        (setq py-auto-format t)))))
+     ("C-c C-f" . ruff-fmt)))
+
+  ;; ;; python-black
+  ;; (use-package python-black
+  ;;   :ensure t)
+  ;; ;; python-isort
+  ;; (use-package python-isort
+  ;;   :ensure t
+  ;;   :config
+  ;;   (setq python-isort-arguments
+  ;;         (append python-isort-arguments '("--profile" "black")))
+  ;;   (defun python-formatter ()
+  ;;     (interactive)
+  ;;     ;; (poetry-tracking-mode)
+  ;;     (poetry-track-virtualenv)
+  ;;     (python-isort-buffer)
+  ;;     (python-black-buffer)
+  ;;     (message "Formatted."))
+  ;;   (bind-keys
+  ;;    :map python-mode-map
+  ;;    ("C-c f" . python-formatter)
+  ;;    :map python-ts-mode-map
+  ;;    ("C-c f" . python-formatter)))
+  ;; (defvar py-auto-format nil)
+  ;; (defun toggle-py-auto-format ()
+  ;;   (interactive)
+  ;;   (if py-auto-format
+  ;;       (progn
+  ;;         (message "Auto formatting is disabled.")
+  ;;         (remove-hook 'before-save-hook #'python-formatter t)
+  ;;         (setq py-auto-format nil))
+  ;;     (progn
+  ;;       (message "Auto formatting is enabled.")
+  ;;       (add-hook 'before-save-hook #'python-formatter nil t)
+  ;;       (setq py-auto-format t))))
+  )
 
 ;;;; bison, flex
 (use-package bison-mode
