@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2024-05-21
+;; Modified: 2024-06-16
 ;; Version: 0.0.5
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -636,9 +636,9 @@
   (corfu-right-margin-width 1.0)
   (corfu-bar-width 0.5)
   (corfu-auto-prefix 1)
-  (corfu-auto-delay 0.2)
+  (corfu-auto-delay 0.25)
   (corfu-quit-no-match t)
-  (corfu-popupinfo-delay '(0.2 . 0.2))
+  (corfu-popupinfo-delay '(0.25 . 0.25))
   (corfu-popupinfo-resize nil)
   :config
   (use-package nerd-icons-corfu
@@ -1050,18 +1050,15 @@ Call this on `flyspell-incorrect-hook'."
 ;;; VCS -- Git
 (setq find-file-visit-truename t)
 (setq vc-follow-symlinks t)
+(use-package diff-hl
+  :ensure t
+  :hook (after-init . global-diff-hl-mode))
 (use-package magit
   :ensure t
-  :bind ("C-x g" . magit-status))
-(use-package git-gutter
-  :ensure t
-  :hook (after-init . global-git-gutter-mode)
-  :custom
-  (git-gutter:handled-backends '(git hg))
-  :custom-face
-  (git-gutter:modified ((t (:foreground "#f1fa8c" :background "#f1fa8c"))))
-  (git-gutter:added    ((t (:foreground "#50fa7b" :background "#50fa7b"))))
-  (git-gutter:deleted  ((t (:foreground "#ff79c6" :background "#ff79c6")))))
+  :bind ("C-x g" . magit-status)
+  :config
+  (add-hook 'magit-pre-refresh-hook 'diff-hl-magit-pre-refresh)
+  (add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh))
 (use-package git-modes
   :ensure t
   :mode ((".gitconfig" . gitconfig-mode)
@@ -1176,7 +1173,12 @@ Call this on `flyspell-incorrect-hook'."
 		 ("M-e e". eglot))
   :hook
   ((sh-base-mode c++-ts-mode rust-ts-mode go-ts-mode lua-ts-mode) . eglot-ensure)
-  ((python-mode python-ts-mode) . (lambda () (poetry-track-virtualenv) (eglot-ensure)))
+  ((python-mode python-ts-mode) .
+   (lambda ()
+     (pyvenv-deactivate)
+     (my:enable-mode pet-mode)
+     (pyvenv-activate python-shell-virtualenv-root)
+     (eglot-ensure)))
   :custom
   (eglot-events-buffer-config 0)
   (eglot-autoshutdown t)
@@ -1269,23 +1271,13 @@ Call this on `flyspell-incorrect-hook'."
 
 ;;;; python
 ;; python-mode
-;; (use-package python-mode
-;;   :ensure t
-;;   :mode (("\\.py$" . python-mode))
-;;   :config
-;;   (setq py-outline-minor-mode-p nil)
-;;   (setq py-current-defun-show t)
-;;   (setq py-jump-on-exception nil)
-;;   (setq py-current-defun-delay 1000))
-;; poetry
-(use-package poetry
-  :ensure t
-  :hook (after-init . poetry-tracking-mode)
-  :custom
-  (poetry-tracking-strategy 'projectile))
 (use-package python
   :defer t
   :config
+  (use-package pet
+    :ensure t)
+  (use-package pyvenv
+    :ensure t)
   ;; python-insert-docstring: for google-style docstring
   (use-package python-insert-docstring
     :ensure t
@@ -1303,11 +1295,10 @@ Call this on `flyspell-incorrect-hook'."
       :lighter " RuffFmt")
     (reformatter-define ruff-check
       :program "ruff"
-      :args (list "check" "--fix" "--extend-select" "I" "--stdin-filename" (or (buffer-file-name) input-file))
+      :args (list "check" "--fix" "--unsafe-fixes" "--extend-select" "I" "--stdin-filename" (or (buffer-file-name) input-file))
       :lighter " RuffCheck")
     (defun ruff-fmt ()
       (interactive)
-      (poetry-track-virtualenv)
       (ruff-check-buffer)
       (ruff-format-buffer)
       (message "Formatted."))
@@ -1328,8 +1319,6 @@ Call this on `flyspell-incorrect-hook'."
   ;;         (append python-isort-arguments '("--profile" "black")))
   ;;   (defun python-formatter ()
   ;;     (interactive)
-  ;;     ;; (poetry-tracking-mode)
-  ;;     (poetry-track-virtualenv)
   ;;     (python-isort-buffer)
   ;;     (python-black-buffer)
   ;;     (message "Formatted."))
@@ -1351,7 +1340,6 @@ Call this on `flyspell-incorrect-hook'."
   ;;       (add-hook 'before-save-hook #'python-formatter nil t)
   ;;       (setq py-auto-format t))))
   )
-
 ;;;; bison, flex
 (use-package bison-mode
   :ensure t
