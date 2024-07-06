@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2024-06-16
+;; Modified: 2024-07-03
 ;; Version: 0.0.5
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -1163,6 +1163,11 @@ Call this on `flyspell-incorrect-hook'."
 ;;   (setq flycheck-check-syntax-automatically '(mode-enabled save)))
 
 ;;;; LSP
+(use-package jsonrpc
+  :defer t
+  :config
+  (setq jsonrpc-default-request-timeout 3000)
+  (fset #'jsonrpc--log-event #'ignore))
 (use-package eglot
   :ensure t
   :defer t
@@ -1177,18 +1182,27 @@ Call this on `flyspell-incorrect-hook'."
    (lambda ()
      (pyvenv-deactivate)
      (my:enable-mode pet-mode)
-     (pyvenv-activate python-shell-virtualenv-root)
+     (when python-shell-virtualenv-root
+       (pyvenv-activate python-shell-virtualenv-root))
      (eglot-ensure)))
   :custom
   (eglot-events-buffer-config 0)
   (eglot-autoshutdown t)
   (eglot-autoreconnect t)
   ;; (eglot-ignored-server-capabilities '(:documentHighlightProvider))
+  (eglot-ignored-server-capabilities '(:didChangeWatchedFiles))
   :config
+  (use-package eglot-booster
+	:after eglot
+    ;; :vc (:fetcher github :repo "jdtsmith/eglot-booster")
+    :load-path "share"
+	:config
+    (eglot-booster-mode))
   (add-to-list
    'eglot-server-programs
    '((python-mode python-ts-mode) . ("pyright-langserver" "--stdio"))
    ;; '((python-mode python-ts-mode) . ("pylsp"))
+   ;; '((python-mode python-ts-mode) . ("ruff" "server" "--preview"))
    ))
 (use-package lsp-mode
   :ensure t
