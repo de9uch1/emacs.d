@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2024-07-03
+;; Modified: 2024-07-22
 ;; Version: 0.0.5
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -427,7 +427,10 @@
 					'xclip))
   :config
   (defun wl-copy (data) (xclip-set-selection 'clipboard data))
-  (setq interprogram-cut-function 'wl-copy))
+  (setq interprogram-cut-function 'wl-copy)
+  (when (eval-and-compile (executable-find "wl-copy"))
+    (defun wl-paste () (shell-command-to-string "wl-paste -n | tr -d \r"))
+    (setq interprogram-paste-function 'wl-paste)))
 ;; popwin
 (use-package popwin
   :ensure t
