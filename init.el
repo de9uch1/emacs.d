@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2024-07-22
+;; Modified: 2024-08-15
 ;; Version: 0.0.5
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -562,7 +562,13 @@
         cmd)))
   (add-to-list 'vertico-multiform-commands
                '(execute-extended-command
-                 (+vertico-transform-functions . +vertico-highlight-enabled-mode))))
+                 (+vertico-transform-functions . +vertico-highlight-enabled-mode)))
+  (defun my:find-file-with-alpha-sort ()
+    "Temporarily set `vertico-sort-function` to `#'vertico-sort-alpha` and run `find-file`."
+    (interactive)
+    (let ((vertico-sort-function #'vertico-sort-alpha))
+      (call-interactively #'find-file)))
+  (bind-key "C-x C-a" #'my:find-file-with-alpha-sort))
 ;; vertico + prescient
 (use-package vertico-prescient
   :ensure t
