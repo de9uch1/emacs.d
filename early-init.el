@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi@ai.cs.ehime-u.ac.jp>
 ;; Created: 2018-05-26
-;; Modified: 2024-02-07
+;; Modified: 2024-09-19
 ;; Version: 0.0.5
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -70,15 +70,16 @@
 (setq system-time-locale "C")
 ;;; Appearance
 ;;;; Disable noisy effects
-(push '(menu-bar-lines     . nil) default-frame-alist)
-(push '(tool-bar-lines     . nil) default-frame-alist)
-(push '(scroll-bar-mode    . nil) default-frame-alist)
-(push '(cursor-type        . bar) default-frame-alist)
+(push '(menu-bar-lines           . nil) default-frame-alist)
+(push '(tool-bar-lines           . nil) default-frame-alist)
+(push '(scroll-bar-mode          . nil) default-frame-alist)
+(push '(cursor-type              . bar) default-frame-alist)
+(push '(inhibit-double-buffering .   t)   default-frame-alist)
 (when (functionp #'set-scroll-bar-mode)
   (set-scroll-bar-mode nil))
-(setq inhibit-startup-screen t)
-(setq inhibit-startup-message t)
-(setq inhibit-startup-echo-area-message t)
+(setq inhibit-startup-screen t
+      inhibit-startup-message t
+      inhibit-startup-echo-area-message t)
 ;; (setq frame-inhibit-implied-resize t)
 (setq site-run-file nil)
 (setq use-file-dialog nil)
@@ -89,9 +90,9 @@
 ;;;; for GUI
 (advice-add 'x-apply-session-resources :override 'ignore)
 ;; window size
-(push '(height . 60) default-frame-alist)
-(push '(width . 144) default-frame-alist)
-(push '(alpha-background . 95) default-frame-alist)
+(push '(height           .  60) default-frame-alist)
+(push '(width            . 144) default-frame-alist)
+(push '(alpha-background .  95) default-frame-alist)
 (setq initial-frame-alist default-frame-alist)
 
 (provide 'early-init)
