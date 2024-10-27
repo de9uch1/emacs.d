@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2024-08-15
+;; Modified: 2024-10-27
 ;; Version: 0.0.5
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -157,7 +157,7 @@
 ;; Name
 (setq user-full-name "Hiroyuki Deguchi")
 ;; E-mail Address
-(setq user-mail-address "deguchi.hiroyuki.db0@is.naist.jp")
+(setq user-mail-address "hiroyuki.deguchi@ntt.com")
 ;;;; Directory --
 ;; $HOME/.emacs.d
 ;; for ``emacs -q -l .emacs''
@@ -747,77 +747,6 @@
   ;;(add-to-list 'completion-at-point-functions #'cape-elisp-symbol)
   ;;(add-to-list 'completion-at-point-functions #'cape-line)
   )
-
-;; (use-package company-box
-;;   :ensure t
-;;   :disabled t
-;;   :no-require t
-;;   :hook (company-mode . company-box-mode)
-;;   :config
-;;   (setq company-box-icons-nerd-icons
-;;         `((Unknown . ,(nerd-icons-faicon "nf-fa-code"))
-;;           (Text . ,(nerd-icons-faicon "nf-fa-text_width"))
-;;           (Method . ,(nerd-icons-faicon "nf-fa-cube"))
-;;           (Function . ,(nerd-icons-faicon "nf-fa-cube"))
-;;           (Constructor . ,(nerd-icons-faicon "nf-fa-cube"))
-;;           (Field . ,(nerd-icons-faicon "nf-fa-tag"))
-;;           (Variable . ,(nerd-icons-faicon "nf-fa-tag"))
-;;           (Class . ,(nerd-icons-faicon "nf-fa-cogs"))
-;;           (Interface . ,(nerd-icons-faicon "nf-fa-italic"))
-;;           (Module . ,(nerd-icons-faicon "nf-fa-code"))
-;;           (Property . ,(nerd-icons-faicon "nf-fa-wrench"))
-;;           (Unit . ,(nerd-icons-faicon "nf-fa-street_view"))
-;;           (Value . ,(nerd-icons-faicon "nf-fa-tag"))
-;;           (Enum . ,(nerd-icons-faicon "nf-fa-book"))
-;;           (Keyword . ,(nerd-icons-faicon "nf-fa-key"))
-;;           (Snippet . ,(nerd-icons-faicon "nf-fa-expand"))
-;;           (Color . ,(nerd-icons-faicon "nf-fae-palette_color"))
-;;           (File . ,(nerd-icons-faicon "nf-fa-file"))
-;;           (Reference . ,(nerd-icons-faicon "nf-fa-street_view"))
-;;           (Folder . ,(nerd-icons-faicon "nf-fa-folder_open"))
-;;           (EnumMember . ,(nerd-icons-faicon "nf-fa-book"))
-;;           (Constant . ,(nerd-icons-faicon "nf-fa-bars"))
-;;           (Struct . ,(nerd-icons-faicon "nf-fa-cogs"))
-;;           (Event . ,(nerd-icons-faicon "nf-fa-bolt"))
-;;           (Operator . ,(nerd-icons-faicon "nf-fa-street_view"))
-;;           (TypeParameter . ,(nerd-icons-faicon "nf-fa-cogs"))
-;;           (Template . ,(nerd-icons-faicon "nf-fa-code_fork"))
-;;           ))
-;;   (setq company-box-icons-alist 'company-box-icons-nerd-icons)
-;;   (setq company-box-icons-unknown 'fa_question_circle)
-;;   (setq company-box-icons-elisp
-;;         '((fa_tag :face font-lock-function-name-face) ;; Function
-;;           (fa_cog :face font-lock-variable-name-face) ;; Variable
-;;           (fa_cube :face font-lock-constant-face) ;; Feature
-;;           (md_color_lens :face font-lock-doc-face))) ;; Face
-;;   (setq company-box-icons-yasnippet 'fa_bookmark)
-;;   (setq company-box-icons-lsp
-;;         '((1 . fa_text_height) ;; Text
-;;           (2 . (fa_tags :face font-lock-function-name-face)) ;; Method
-;;           (3 . (fa_tag :face font-lock-function-name-face)) ;; Function
-;;           (4 . (fa_tag :face font-lock-function-name-face)) ;; Constructor
-;;           (5 . (fa_cog :foreground "#FF9800")) ;; Field
-;;           (6 . (fa_cog :foreground "#FF9800")) ;; Variable
-;;           (7 . (fa_cube :foreground "#7C4DFF")) ;; Class
-;;           (8 . (fa_cube :foreground "#7C4DFF")) ;; Interface
-;;           (9 . (fa_cube :foreground "#7C4DFF")) ;; Module
-;;           (10 . (fa_cog :foreground "#FF9800")) ;; Property
-;;           (11 . md_settings_system_daydream) ;; Unit
-;;           (12 . (fa_cog :foreground "#FF9800")) ;; Value
-;;           (13 . (md_storage :face font-lock-type-face)) ;; Enum
-;;           (14 . (md_closed_caption :foreground "#009688")) ;; Keyword
-;;           (15 . md_closed_caption) ;; Snippet
-;;           (16 . (md_color_lens :face font-lock-doc-face)) ;; Color
-;;           (17 . fa_file_text_o) ;; File
-;;           (18 . md_refresh) ;; Reference
-;;           (19 . fa_folder_open) ;; Folder
-;;           (20 . (md_closed_caption :foreground "#009688")) ;; EnumMember
-;;           (21 . (fa_square :face font-lock-constant-face)) ;; Constant
-;;           (22 . (fa_cube :face font-lock-type-face)) ;; Struct
-;;           (23 . fa_calendar) ;; Event
-;;           (24 . fa_square_o) ;; Operator
-;;           (25 . fa_arrows)) ;; TypeParameter
-;;         ))
 
 ;;;; Tab
 ;; Tab-bar-mode or Elscreen
