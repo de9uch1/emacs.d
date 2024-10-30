@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2024-10-27
+;; Modified: 2024-10-30
 ;; Version: 0.0.5
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -244,8 +244,8 @@
   :ensure t
   :custom
   (doom-themes-enable-bold t)
-  (doom-themes-neotree-project-size 1.0)
-  (doom-themes-neotree-folder-size 1.0)
+  ;; (doom-themes-neotree-project-size 1.0)
+  ;; (doom-themes-neotree-folder-size 1.0)
   :config
   (load-theme 'doom-dracula t)
   ;; (doom-themes-neotree-config)
@@ -266,8 +266,8 @@
 ;; hide-mode-line
 (use-package hide-mode-line
   :ensure t
-  :hook
-  ((neotree-mode imenu-list-minor-mode) . hide-mode-line-mode))
+  ;; :hook ((neotree-mode imenu-list-minor-mode) . hide-mode-line-mode)
+  )
 ;;;; Misc.
 (my:unless! early-init-compat
   ;; disable features
