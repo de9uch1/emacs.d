@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2024-10-30
+;; Modified: 2024-11-03
 ;; Version: 0.0.5
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -244,11 +244,8 @@
   :ensure t
   :custom
   (doom-themes-enable-bold t)
-  ;; (doom-themes-neotree-project-size 1.0)
-  ;; (doom-themes-neotree-folder-size 1.0)
   :config
   (load-theme 'doom-dracula t)
-  ;; (doom-themes-neotree-config)
   (doom-themes-org-config))
 ;;;; Modeline
 ;; doom-modeline
@@ -256,7 +253,7 @@
   :ensure t
   :custom
   (doom-modeline-icon t)
-  (doom-modeline-project-detection 'projectile)
+  (doom-modeline-project-detection 'project)
   :hook (after-init . doom-modeline-mode)
   :config
   (my:enable-mode column-number-mode)
@@ -568,7 +565,7 @@
     (interactive)
     (let ((vertico-sort-function #'vertico-sort-alpha))
       (call-interactively #'find-file)))
-  (bind-key "C-x C-a" #'my:find-file-with-alpha-sort))
+  (bind-key "C-x M-f" #'my:find-file-with-alpha-sort))
 ;; vertico + prescient
 (use-package vertico-prescient
   :ensure t
@@ -583,6 +580,9 @@
          ("M-r" . consult-ripgrep)
          :map isearch-mode-map
          ("M-i" . consult-line)))
+(use-package consult-project-extra
+  :ensure t
+  :bind (("M-p" . consult-project-extra-find)))
 (use-package consult-ghq
   :ensure t
   :bind (("M-g" . consult-ghq-switch-project))
@@ -645,9 +645,9 @@
   (corfu-right-margin-width 1.0)
   (corfu-bar-width 0.5)
   (corfu-auto-prefix 1)
-  (corfu-auto-delay 0.25)
+  (corfu-auto-delay 0.1)
   (corfu-quit-no-match t)
-  (corfu-popupinfo-delay '(0.25 . 0.25))
+  (corfu-popupinfo-delay '(0.1 . 0.1))
   (corfu-popupinfo-resize nil)
   :config
   (use-package nerd-icons-corfu
@@ -773,48 +773,48 @@
              ("z" . tab-recent)
              ("C-z" . tab-recent)))
 ;; Centaur tabs
-(use-package centaur-tabs
-  :ensure t
-  :hook (after-init . centaur-tabs-mode)
-  :custom
-  (centaur-tabs-prefix-key (kbd "M-z"))
-  (centaur-tabs-style "bar")
-  (centaur-tabs-height 12)
-  (centaur-tabs-set-icons t)
-  (centaur-tabs-set-bar 'left)
-  (centaur-tabs-set-modified-marker t)
-  (centaur-tabs-cycle-scope 'tabs)
-  :config
-  (centaur-tabs-group-by-projectile-project)
-  (bind-keys
-   ("C-<tab>" . centaur-tabs-forward)
-   ("<C-S-iso-lefttab>" . centaur-tabs-backward)
-   :prefix-map centaur-tabs-prefix-map
-   :prefix "M-z"
-   ("n" . centaur-tabs-forward)
-   ("C-n" . centaur-tabs-forward)
-   ("M-n" . centaur-tabs-forward)
-   ("p" . centaur-tabs-backward)
-   ("C-p" . centaur-tabs-backward)
-   ("M-p" . centaur-tabs-backward)
-   ("k" . kill-current-buffer)
-   ("C-k" . kill-current-buffer)
-   ("M-k" . kill-current-buffer)
-   ("f" . centaur-tabs-forward-group)
-   ("C-f" . centaur-tabs-forward-group)
-   ("M-f" . centaur-tabs-forward-group)
-   ("b" . centaur-tabs-backward-group)
-   ("C-b" . centaur-tabs-backward-group)
-   ("M-b" . centaur-tabs-backward-group)
-   ("C-a" . centaur-tabs-select-beg-tab)
-   ("C-e" . centaur-tabs-select-end-tab)))
+;; (use-package centaur-tabs
+;;   :ensure t
+;;   :hook (after-init . centaur-tabs-mode)
+;;   :custom
+;;   (centaur-tabs-prefix-key (kbd "M-z"))
+;;   (centaur-tabs-style "bar")
+;;   (centaur-tabs-height 12)
+;;   (centaur-tabs-set-icons t)
+;;   (centaur-tabs-set-bar 'left)
+;;   (centaur-tabs-set-modified-marker t)
+;;   (centaur-tabs-cycle-scope 'tabs)
+;;   :config
+;;   ;; (centaur-tabs-group-by-projectile-project)
+;;   (bind-keys
+;;    ("C-<tab>" . centaur-tabs-forward)
+;;    ("<C-S-iso-lefttab>" . centaur-tabs-backward)
+;;    :prefix-map centaur-tabs-prefix-map
+;;    :prefix "M-z"
+;;    ("n" . centaur-tabs-forward)
+;;    ("C-n" . centaur-tabs-forward)
+;;    ("M-n" . centaur-tabs-forward)
+;;    ("p" . centaur-tabs-backward)
+;;    ("C-p" . centaur-tabs-backward)
+;;    ("M-p" . centaur-tabs-backward)
+;;    ("k" . kill-current-buffer)
+;;    ("C-k" . kill-current-buffer)
+;;    ("M-k" . kill-current-buffer)
+;;    ("f" . centaur-tabs-forward-group)
+;;    ("C-f" . centaur-tabs-forward-group)
+;;    ("M-f" . centaur-tabs-forward-group)
+;;    ("b" . centaur-tabs-backward-group)
+;;    ("C-b" . centaur-tabs-backward-group)
+;;    ("M-b" . centaur-tabs-backward-group)
+;;    ("C-a" . centaur-tabs-select-beg-tab)
+;;    ("C-e" . centaur-tabs-select-end-tab)))
 ;; eldoc
 (use-package eldoc-box
   :ensure t
   :if window-system
   :hook
   (eglot-managed-mode . eldoc-box-hover-mode)
-  ((eldoc-box-hover-mode) . centaur-tabs-local-mode)
+  ;; ((eldoc-box-hover-mode) . centaur-tabs-local-mode)
   :diminish (eldoc-box-hover-mode eldoc-box-hover-at-point-mode)
   :custom
   (eldoc-box-lighter nil)
@@ -1004,45 +1004,28 @@ Call this on `flyspell-incorrect-hook'."
          (".gitattributes" . gitattributes-mode)))
 
 ;;; Programming Language
-;;;; projectile
-(use-package projectile
-  :ensure t
-  :hook (after-init . projectile-mode)
-  :bind (:map projectile-mode-map
-              ("C-c p" . projectile-command-map)
-              ("C-c C-p" . projectile-command-map))
-  :custom
-  (projectile-enable-caching t)
-  (projectile-cache-file (expand-file-name "projectile.cache" my:d:tmp))
-  (projectile-known-projects-file (expand-file-name "projectile-bookmarks.eld" my:d:tmp))
-  :config
-  (defun git-rsync-push ()
-    (interactive)
-    (if (executable-find "git-rsync")
-        (call-process-shell-command "git rsync push &")
-      (message "git-rsync not found.")))
-  (defvar auto-git-rsync nil)
-  (defun toggle-auto-git-rsync ()
-    (interactive)
-    (if auto-git-rsync
-        (progn
-          (remove-hook 'after-save-hook #'git-rsync-push nil)
-          (setq auto-git-rsync nil)
-          (message "auto-git-rsync is disabled."))
+(defun git-rsync-push ()
+  (interactive)
+  (if (executable-find "git-rsync")
+      (call-process-shell-command "git rsync push &")
+    (message "git-rsync not found.")))
+(defvar auto-git-rsync nil)
+(defun toggle-auto-git-rsync ()
+  (interactive)
+  (if auto-git-rsync
       (progn
-        (add-hook 'after-save-hook #'git-rsync-push nil nil)
-        (setq auto-git-rsync t)
-        (message "auto-git-rsync is enabled."))))
-  (use-package consult-projectile
-    :ensure t
-    :bind (:map projectile-mode-map
-                ("M-p" . consult-projectile))))
+        (remove-hook 'after-save-hook #'git-rsync-push nil)
+        (setq auto-git-rsync nil)
+        (message "auto-git-rsync is disabled."))
+    (progn
+      (add-hook 'after-save-hook #'git-rsync-push nil nil)
+      (setq auto-git-rsync t)
+      (message "auto-git-rsync is enabled."))))
 
 ;;;; Treemacs
 (use-package treemacs
   :ensure t
   :defer t
-  :after projectile
   :bind
   (:map global-map
         ("M-0"       . treemacs-select-window)
@@ -1069,29 +1052,14 @@ Call this on `flyspell-incorrect-hook'."
   (treemacs-persist-file (expand-file-name "treemacs-persist" my:d:tmp))
   (treemacs-last-error-persist-file (expand-file-name "treemacs-persist-at-last-error" my:d:tmp))
   :config
-  (setq treemacs--icon-size 16)
+  (setq treemacs--icon-size 14)
   (my:enable-mode treemacs-project-follow-mode)
   (my:enable-mode treemacs-follow-mode)
   (my:enable-mode treemacs-filewatch-mode))
-(use-package treemacs-projectile
+(use-package project-treemacs
   :ensure t
   :defer t
-  :after (treemacs projectile))
-;;;; Neotree
-;; (use-package neotree
-;;   :ensure t
-;;   :after projectile
-;;   :defer t
-;;   :bind (("<f8>" . neotree-toggle)
-;;          :map neotree-mode-map
-;;          ("a" . neotree-hidden-file-toggle)
-;;          ("^" . neotree-select-up-node)
-;;          ("<right>" . neotree-change-root))
-;;   :custom
-;;   (neo-theme 'nerd)
-;;   (neo-smart-open t)
-;;   (neo-keymap-style 'concise)
-;;   (neo-vc-integration t))
+  :after (treemacs))
 
 ;;;; flycheck
 ;; (use-package flycheck
@@ -1601,31 +1569,32 @@ Call this on `flyspell-incorrect-hook'."
   (setq org-export-with-toc nil)
   (setq org-duration-format (quote h:mm))
   ;; org-gcal
-  (use-package request
-    :ensure t
-    :init
-    (setq request-storage-directory (expand-file-name "request" my:d:tmp))
-    (unless (file-directory-p request-storage-directory)
-      (make-directory request-storage-directory)))
-  (use-package org-gcal
-    :ensure t
-    :if (file-directory-p org-directory)
-    :commands (org-gcal-fetch org-gcal-sync)
-    :custom
-    (org-generic-id-locations-file (expand-file-name "org-generic-id-locations" my:d:tmp))
-    :init
-    (setq org-gcal-dir (expand-file-name "org-gcal" my:d:tmp))
-    (unless org-gcal-dir
-      (make-directory org-gcal-dir))
-    (setq org-gcal-token-file (expand-file-name ".org-gcal-token" org-gcal-dir))
-    (setq alert-log-messages t)
-    (setq alert-default-style 'log)
-    (setq org-gcal-down-days   90) ;; 過去 3 month
-    (setq org-gcal-up-days    180) ;; 未来 6 month
-    (setq org-gcal-auto-archive nil)
-    :config
-    (load (expand-file-name "app/org-gcal/token" my:d:nextcloud))
-    (setq org-gcal-file-alist `(("de9uch1@gmail.com" . ,(expand-file-name "schedule.org" org-directory))))))
+  ;; (use-package request
+  ;;   :ensure t
+  ;;   :init
+  ;;   (setq request-storage-directory (expand-file-name "request" my:d:tmp))
+  ;;   (unless (file-directory-p request-storage-directory)
+  ;;     (make-directory request-storage-directory)))
+  ;; (use-package org-gcal
+  ;;   :ensure t
+  ;;   :if (file-directory-p org-directory)
+  ;;   :commands (org-gcal-fetch org-gcal-sync)
+  ;;   :custom
+  ;;   (org-generic-id-locations-file (expand-file-name "org-generic-id-locations" my:d:tmp))
+  ;;   :init
+  ;;   (setq org-gcal-dir (expand-file-name "org-gcal" my:d:tmp))
+  ;;   (unless org-gcal-dir
+  ;;     (make-directory org-gcal-dir))
+  ;;   (setq org-gcal-token-file (expand-file-name ".org-gcal-token" org-gcal-dir))
+  ;;   (setq alert-log-messages t)
+  ;;   (setq alert-default-style 'log)
+  ;;   (setq org-gcal-down-days   90) ;; 過去 3 month
+  ;;   (setq org-gcal-up-days    180) ;; 未来 6 month
+  ;;   (setq org-gcal-auto-archive nil)
+  ;;   :config
+  ;;   (load (expand-file-name "app/org-gcal/token" my:d:nextcloud))
+  ;;   (setq org-gcal-file-alist `(("de9uch1@gmail.com" . ,(expand-file-name "schedule.org" org-directory)))))
+  )
 
 ;;; Misc Packages
 ;;;; SSH
