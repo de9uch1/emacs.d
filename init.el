@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2024-11-03
+;; Modified: 2024-12-19
 ;; Version: 0.0.5
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -195,16 +195,6 @@
       (require 'use-package nil t)
     (defmacro use-package (&rest args))))
 (use-package bind-key)
-;;;; quelpa, quelpa-use-package
-;; (use-package quelpa
-;;   :ensure t
-;;   :config
-;;   (setq quelpa-upgrade-p nil
-;;         quelpa-checkout-melpa-p nil
-;;         quelpa-update-melpa-p nil
-;;         quelpa-melpa-recipe-stores nil))
-;; (use-package quelpa-use-package
-;;   :ensure t)
 
 ;;; Custom
 (setq custom-file (my:locate-user-emacs-file "custom.el"))
@@ -1097,66 +1087,36 @@ Call this on `flyspell-incorrect-hook'."
   (eglot-autoreconnect t)
   ;; (eglot-ignored-server-capabilities '(:documentHighlightProvider))
   (eglot-ignored-server-capabilities '(:didChangeWatchedFiles))
+  :init
+  (setq eglot-ignored-server-capabilities '(:didChangeWatchedFiles :reportUnusedCallResult))
+  (setq-default
+    eglot-workspace-configuration
+    '(:basedpyright\.analysis
+       (:inlayHints
+         (:variableTypes nil
+          :callArgumentNames nil
+          :functionReturnTypes nil
+          :genericTypes nil
+         )
+        :diagnosticSeverityOverrides
+         (:reportUnusedCallResult "none"
+          :reportMissingTypeStubs "none"
+         )
+       )))
   :config
   (use-package eglot-booster
-	:after eglot
+    :after eglot
     ;; :vc (:fetcher github :repo "jdtsmith/eglot-booster")
     :load-path "share"
-	:config
+    :config
     (eglot-booster-mode))
   (add-to-list
    'eglot-server-programs
-   '((python-mode python-ts-mode) . ("pyright-langserver" "--stdio"))
+   '((python-mode python-ts-mode) . ("basedpyright-langserver" "--stdio"))
+   ;; '((python-mode python-ts-mode) . ("pyright-langserver" "--stdio"))
    ;; '((python-mode python-ts-mode) . ("pylsp"))
    ;; '((python-mode python-ts-mode) . ("ruff" "server" "--preview"))
    ))
-(use-package lsp-mode
-  :ensure t
-  :disabled t
-  :bind (("M-." . xref-find-definitions)
-         ("M-," . xref-pop-marker-stack)
-         ("M-/" . xref-find-references))
-  :commands lsp
-  :hook ((sh-mode c++-mode rust-mode go-mode) . #'lsp)
-  :custom
-  (lsp-keymap-prefix "M-k")
-  (lsp-print-io nil)
-  (lsp-log-io nil)
-  (lsp-trace nil)
-  (lsp-server-trace nil)
-  (lsp-print-performance nil)
-  (lsp-use-plists t)
-  (lsp-enable-completion-at-point t)
-  (lsp-response-timeout 5)
-  (lsp-idle-delay 0.5)
-  (lsp-prefer-flymake nil)
-  (lsp-prefer-capf t)
-  (lsp-enable-snippet t)
-  (lsp-session-file (expand-file-name "lsp-session-v1" my:d:tmp))
-  (lsp-server-install-dir (expand-file-name "lsp" my:d:tmp))
-  (lsp-rust-server 'rust-analyzer)
-  :config
-  (setq lsp-restart 'auto-restart)
-  (setq lsp-completion-provider :capf)
-  (setq lsp-document-sync-method lsp--sync-incremental)
-  (use-package company-capf
-    :after (company lsp-mode)
-    :config
-    (push 'company-capf company-backends))
-  (use-package lsp-ui
-    :ensure t
-    :hook (lsp-mode . lsp-ui-mode)
-    :custom
-    (lsp-ui-doc-enable t)
-    (lsp-ui-doc-show-with-cursor t)
-    (lsp-ui-doc-position 'top)
-    (lsp-ui-doc-header t)
-    (lsp-ui-doc-include-signature t)
-    (lsp-ui-doc-max-width 100)
-    (lsp-ui-doc-max-height 50)
-    (lsp-ui-doc-use-childframe t)
-    (lsp-ui-doc-use-webkit nil)
-    (lsp-ui-doc-alignment 'frame)))
 
 ;; tree-sitter
 (use-package treesit
@@ -1226,40 +1186,7 @@ Call this on `flyspell-incorrect-hook'."
      :map python-mode-map
      ("C-c C-f" . ruff-fmt)
      :map python-ts-mode-map
-     ("C-c C-f" . ruff-fmt)))
-
-  ;; ;; python-black
-  ;; (use-package python-black
-  ;;   :ensure t)
-  ;; ;; python-isort
-  ;; (use-package python-isort
-  ;;   :ensure t
-  ;;   :config
-  ;;   (setq python-isort-arguments
-  ;;         (append python-isort-arguments '("--profile" "black")))
-  ;;   (defun python-formatter ()
-  ;;     (interactive)
-  ;;     (python-isort-buffer)
-  ;;     (python-black-buffer)
-  ;;     (message "Formatted."))
-  ;;   (bind-keys
-  ;;    :map python-mode-map
-  ;;    ("C-c f" . python-formatter)
-  ;;    :map python-ts-mode-map
-  ;;    ("C-c f" . python-formatter)))
-  ;; (defvar py-auto-format nil)
-  ;; (defun toggle-py-auto-format ()
-  ;;   (interactive)
-  ;;   (if py-auto-format
-  ;;       (progn
-  ;;         (message "Auto formatting is disabled.")
-  ;;         (remove-hook 'before-save-hook #'python-formatter t)
-  ;;         (setq py-auto-format nil))
-  ;;     (progn
-  ;;       (message "Auto formatting is enabled.")
-  ;;       (add-hook 'before-save-hook #'python-formatter nil t)
-  ;;       (setq py-auto-format t))))
-  )
+     ("C-c C-f" . ruff-fmt))))
 ;;;; bison, flex
 (use-package bison-mode
   :ensure t
