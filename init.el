@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2024-12-19
+;; Modified: 2025-02-27
 ;; Version: 0.0.5
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -471,6 +471,11 @@
           ("findn" "find . -name $*")
           ("duc" "du -had1 $*"))))
 
+;;;; project.el
+(use-package project-rootfile
+  :ensure t
+  :config
+  (push #'project-rootfile-try-detect project-find-functions))
 ;;;; Mini-buffer completion
 ;; prescient -- simple but effective sorting and filtering for Emacs.
 (use-package prescient
@@ -623,6 +628,15 @@
   (aw-leading-char-face ((t (:height 2.0 :forground "#f1fa8c")))))
 
 ;;;; corfu -- in-buffer completion
+;; (use-package completion-preview-mode
+;;   :bind
+;;   (:map completion-preview-active-mode-map
+;;         ("C-n" . completion-preview-next-candidate)
+;;         ("C-p" . completion-preview-prev-candidate))
+;;   :custom
+;;   (completion-preview-minimum-symbol-length 1)
+;;   :hook (after-init . (lambda () (my:enable-mode global-completion-preview-mode)))
+;;   )
 (use-package corfu
   :ensure t
   :hook (after-init . (lambda () (global-corfu-mode) (my:enable-mode corfu-popupinfo-mode)))
@@ -819,7 +833,7 @@
   :config
   ;; Always retrun 'left so that eldoc-box is aligned to right.
   ;; (defun eldoc-box--window-side () 'left)
-  (setq eldoc-idle-delay 0.25)
+  (setq eldoc-idle-delay 0.1)
   (setf (alist-get 'left-fringe eldoc-box-frame-parameters) 8
         (alist-get 'right-fringe eldoc-box-frame-parameters) 8))
 ;;; Text
@@ -1073,7 +1087,7 @@ Call this on `flyspell-incorrect-hook'."
          ("M-e r" . eglot-rename)
 		 ("M-e e". eglot))
   :hook
-  ((sh-base-mode c++-ts-mode rust-ts-mode go-ts-mode lua-ts-mode) . eglot-ensure)
+  ((sh-base-mode c++-ts-mode rust-ts-mode rust-mode go-ts-mode lua-ts-mode) . eglot-ensure)
   ((python-mode python-ts-mode) .
    (lambda ()
      (pyvenv-deactivate)
@@ -1108,6 +1122,8 @@ Call this on `flyspell-incorrect-hook'."
     :after eglot
     ;; :vc (:fetcher github :repo "jdtsmith/eglot-booster")
     :load-path "share"
+    :custom
+    (eglot-booster-io-only t)
     :config
     (eglot-booster-mode))
   (add-to-list
@@ -1129,6 +1145,7 @@ Call this on `flyspell-incorrect-hook'."
   :config
   (delete 'python treesit-auto-langs)
   (delete 'bash treesit-auto-langs)
+  (delete 'rust treesit-auto-langs)
   (global-treesit-auto-mode)
   (treesit-auto-add-to-auto-mode-alist))
 
@@ -1196,9 +1213,10 @@ Call this on `flyspell-incorrect-hook'."
 
 ;;;; Rust
 (use-package rust-mode
-  :disabled t
   :ensure t
-  :custom (rust-format-on-save t))
+  :custom
+  (rust-format-on-save t)
+  (rust-mode-treesitter-derive t))
 (use-package cargo
   :ensure t
   :hook (rust-mode . cargo-minor-mode))
