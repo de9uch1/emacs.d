@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi@ai.cs.ehime-u.ac.jp>
 ;; Created: 2018-05-26
-;; Modified: 2024-09-19
+;; Modified: 2025-04-22
 ;; Version: 0.0.5
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -47,6 +47,7 @@
 (setq gc-cons-percentage 1.0
       gc-cons-threshold most-positive-fixnum
       read-process-output-max 67108864  ; (* 64 1024 1024)
+      process-adaptive-read-buffering nil
       )
 (setq garbage-collection-messages nil)
 (add-hook
@@ -90,7 +91,7 @@
 ;;;; for GUI
 (advice-add 'x-apply-session-resources :override 'ignore)
 ;; window size
-(push '(height           .  60) default-frame-alist)
+(push '(height           .  56) default-frame-alist)
 (push '(width            . 144) default-frame-alist)
 (push '(alpha-background .  95) default-frame-alist)
 (setq initial-frame-alist default-frame-alist)

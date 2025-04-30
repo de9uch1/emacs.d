@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2025-02-27
+;; Modified: 2025-04-23
 ;; Version: 0.0.5
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -186,6 +186,7 @@
   (setq package-quickstart-file (expand-file-name "package-quickstart.el" my:d:tmp))
   (require 'package nil t)
   (package-initialize))
+(setopt package-install-upgrade-built-in t)
 ;;;; use-package.el
 (eval-when-compile
   (unless (package-installed-p 'use-package)
@@ -1080,6 +1081,7 @@ Call this on `flyspell-incorrect-hook'."
   (fset #'jsonrpc--log-event #'ignore))
 (use-package eglot
   :ensure t
+  :pin gnu
   :defer t
   :bind (("M-/" . xref-find-references)
          :prefix-map eglot-mode-map
@@ -1260,12 +1262,20 @@ Call this on `flyspell-incorrect-hook'."
   :mode
   (("\\.tex$" . yatex-mode)
    ("\\.sty$" . yatex-mode)
-   ("\\.ltx$" . yatex-mode))
+   ("\\.cls$" . yatex-mode)
+   ("\\.ltx$" . yatex-mode)
+   ("\\.bbl$" . yatex-mode))
   :init
   (add-hook 'yatex-mode-hook 'turn-on-reftex)
+  (add-hook 'yatex-mode-hook 'display-line-numbers-mode)
+  (add-hook 'yatex-mode-hook #'(lambda () (setq-local truncate-lines nil)))
   :config
-  (setq tex-command "latexmk -c && latexmk -f")
+  ;; (setq tex-command "latexmk -c && latexmk -f")
+  ;; (add-to-list 'display-buffer-alist
+  ;;              (cons "\\*YaTeX-typesetting\\*.*" (cons #'display-buffer-no-window nil)))
+  (setq tex-command "latexmk -f")
   (setq YaTeX-kanji-code 4)
+  (setq YaTeX-environment-indent 2)
   (setq tex-pdfview-command (executable-find "okular"))
   (setq electric-indent-mode nil)
   (setq reftex-use-external-file-finders t))
@@ -1276,7 +1286,7 @@ Call this on `flyspell-incorrect-hook'."
   :mode
   (("\\.pdf$" . pdf-view-mode))
   :custom
-  (pdf-view-resize-factor 1.1)
+  (pdf-view-resize-factor 1.0)
   :config
   (add-hook 'pdf-view-mode-hook (lambda () (my:disable-mode display-line-numbers-mode)))
   (bind-keys :map pdf-view-mode-map ("C-s" . isearch-forward)))
