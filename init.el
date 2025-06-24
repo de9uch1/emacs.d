@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2025-04-23
+;; Modified: 2025-06-24
 ;; Version: 0.0.5
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -819,13 +819,14 @@
   :if window-system
   :hook
   (eglot-managed-mode . eldoc-box-hover-mode)
+  (lspce-mode . eldoc-box-hover-mode)
   ;; ((eldoc-box-hover-mode) . centaur-tabs-local-mode)
   :diminish (eldoc-box-hover-mode eldoc-box-hover-at-point-mode)
   :custom
   (eldoc-box-lighter nil)
   (eldoc-box-max-pixel-width 500)
   (eldoc-box-max-pixel-height 400)
-  (eldoc-box-only-multi-line t)
+  (eldoc-box-only-multi-line (not window-system))
   (eldoc-box-offset '(16 24 16))
   (eldoc-box-clear-with-C-g t)
   :custom-face
@@ -1079,62 +1080,127 @@ Call this on `flyspell-incorrect-hook'."
   :config
   (setq jsonrpc-default-request-timeout 3000)
   (fset #'jsonrpc--log-event #'ignore))
-(use-package eglot
-  :ensure t
-  :pin gnu
-  :defer t
+;; LSPCE
+(use-package lspce
+  :load-path "share/lspce"
   :bind (("M-/" . xref-find-references)
-         :prefix-map eglot-mode-map
+         :prefix-map lspce-mode-map
          :prefix "M-e"
-         ("M-e r" . eglot-rename)
-		 ("M-e e". eglot))
+         ("M-e r" . lspce-rename)
+		 ("M-e e". lspce-restart-server))
   :hook
-  ((sh-base-mode c++-ts-mode rust-ts-mode rust-mode go-ts-mode lua-ts-mode) . eglot-ensure)
+  ((sh-base-mode c++-ts-mode rust-ts-mode rust-mode go-ts-mode lua-ts-mode) . lspce-mode)
   ((python-mode python-ts-mode) .
    (lambda ()
      (pyvenv-deactivate)
      (my:enable-mode pet-mode)
      (when python-shell-virtualenv-root
        (pyvenv-activate python-shell-virtualenv-root))
-     (eglot-ensure)))
+     (message buffer-file-name)
+     (my:enable-mode lspce-mode)))
   :custom
-  (eglot-events-buffer-config 0)
-  (eglot-autoshutdown t)
-  (eglot-autoreconnect t)
-  ;; (eglot-ignored-server-capabilities '(:documentHighlightProvider))
-  (eglot-ignored-server-capabilities '(:didChangeWatchedFiles))
-  :init
-  (setq eglot-ignored-server-capabilities '(:didChangeWatchedFiles :reportUnusedCallResult))
-  (setq-default
-    eglot-workspace-configuration
-    '(:basedpyright\.analysis
-       (:inlayHints
-         (:variableTypes nil
-          :callArgumentNames nil
-          :functionReturnTypes nil
-          :genericTypes nil
-         )
-        :diagnosticSeverityOverrides
-         (:reportUnusedCallResult "none"
-          :reportMissingTypeStubs "none"
-         )
-       )))
+  (lspce-enable-symbol-highlight t)
+  (lspce-send-changes-idle-time 0.1)
+  (lspce-idle-delay 0.05)
+  (lspce-show-log-level-in-modeline nil)
+  (lspce-modes-enable-single-file-root '(python-mode python-ts-mode sh-base-mode lua-ts-mode))
   :config
-  (use-package eglot-booster
-    :after eglot
-    ;; :vc (:fetcher github :repo "jdtsmith/eglot-booster")
-    :load-path "share"
-    :custom
-    (eglot-booster-io-only t)
-    :config
-    (eglot-booster-mode))
-  (add-to-list
-   'eglot-server-programs
-   '((python-mode python-ts-mode) . ("basedpyright-langserver" "--stdio"))
-   ;; '((python-mode python-ts-mode) . ("pyright-langserver" "--stdio"))
-   ;; '((python-mode python-ts-mode) . ("pylsp"))
-   ;; '((python-mode python-ts-mode) . ("ruff" "server" "--preview"))
-   ))
+  (lspce-change-max-diagnostics-count 10000)
+  (defun lspce-eldoc-function (callback)
+    (when lspce-mode
+      (let ((hover-info (and lspce-eldoc-enable-hover (lspce--hover-at-point)))
+            (signature (and lspce-eldoc-enable-signature (lspce--signature-at-point)))
+            backend
+            content
+            document)
+        (when hover-info
+          (setq content (lspce--eldoc-render-markup (nth 1 hover-info))))
+        (cond
+         ((and signature content)
+          (setq document (concat signature "\n\n" content)))
+         ((or signature content)
+          (setq document (concat signature content))))
+        (when document
+          (setq backend (propertize "" 'face 'lspce-eldoc-backend-face))
+          (funcall callback (concat backend document))))))
+
+  ;; You should call this first if you want lspce to write logs
+  (lspce-set-log-file "/tmp/lspce.log")
+
+  ;; By default, lspce will not write log out to anywhere. 
+  ;; To enable logging, you can add the following line
+  ;; (lspce-enable-logging)
+  ;; You can enable/disable logging on the fly by calling `lspce-enable-logging' or `lspce-disable-logging'.
+
+  ;; modify `lspce-server-programs' to add or change a lsp server, see document
+  ;; of `lspce-lsp-type-function' to understand how to get buffer's lsp type.
+  ;; Bellow is what I use
+  (setq lspce-server-programs
+        `(("rust"  "rust-analyzer" "" lspce-ra-initializationOptions)
+          ("python" "basedpyright-langserver" "--stdio")
+          ("sh" "bash-language-server" "start")
+          ;; ("C" "clangd" "--all-scopes-completion --clang-tidy --enable-config --header-insertion-decorators=0")
+          ;; ("java" "java" lspce-jdtls-cmd-args lspce-jdtls-initializationOptions)
+          ))
+  )
+
+;; (use-package eglot
+;;   :ensure t
+;;   :pin gnu
+;;   :defer t
+;;   :bind (("M-/" . xref-find-references)
+;;          :prefix-map eglot-mode-map
+;;          :prefix "M-e"
+;;          ("M-e r" . eglot-rename)
+;; 		 ("M-e e". eglot))
+;;   :hook
+;;   ((sh-base-mode c++-ts-mode rust-ts-mode rust-mode go-ts-mode lua-ts-mode) . eglot-ensure)
+;;   ((python-mode python-ts-mode) .
+;;    (lambda ()
+;;      (pyvenv-deactivate)
+;;      (my:enable-mode pet-mode)
+;;      (when python-shell-virtualenv-root
+;;        (pyvenv-activate python-shell-virtualenv-root))
+;;      (eglot-ensure)))
+;;   :custom
+;;   (eglot-events-buffer-config 0)
+;;   (eglot-autoshutdown t)
+;;   (eglot-autoreconnect t)
+;;   ;; (eglot-ignored-server-capabilities '(:documentHighlightProvider))
+;;   (eglot-ignored-server-capabilities '(:didChangeWatchedFiles))
+;;   :init
+;;   (setq eglot-ignored-server-capabilities '(:didChangeWatchedFiles :reportUnusedCallResult))
+;;   (setq-default
+;;     eglot-workspace-configuration
+;;     '(:basedpyright\.analysis
+;;        (:inlayHints
+;;          (:variableTypes nil
+;;           :callArgumentNames nil
+;;           :functionReturnTypes nil
+;;           :genericTypes nil
+;;          )
+;;         :diagnosticSeverityOverrides
+;;          (:reportUnusedCallResult "none"
+;;           :reportMissingTypeStubs "none"
+;;           :reportImplicitOverride "none"
+;;          )
+;;        )))
+;;   :config
+;;   (use-package eglot-booster
+;;     :after eglot
+;;     ;; :vc (:fetcher github :repo "jdtsmith/eglot-booster")
+;;     :load-path "share"
+;;     :custom
+;;     (eglot-booster-io-only t)
+;;     :config
+;;     (eglot-booster-mode))
+;;   (add-to-list
+;;    'eglot-server-programs
+;;    '((python-mode python-ts-mode) . ("basedpyright-langserver" "--stdio"))
+;;    ;; '((python-mode python-ts-mode) . ("pyright-langserver" "--stdio"))
+;;    ;; '((python-mode python-ts-mode) . ("pylsp"))
+;;    ;; '((python-mode python-ts-mode) . ("ruff" "server" "--preview"))
+;;    ))
 
 ;; tree-sitter
 (use-package treesit
@@ -1215,6 +1281,7 @@ Call this on `flyspell-incorrect-hook'."
 
 ;;;; Rust
 (use-package rust-mode
+  :mode (("\\.rs$" . rust-mode))
   :ensure t
   :custom
   (rust-format-on-save t)
