@@ -9,6 +9,8 @@ ELC_TARGETS := $(foreach f,$(wildcard share/*.el),$(basename $(f)).elc)
 
 all: build
 build: init.elc early-init.elc custom.elc $(ELC_TARGETS) tmp/package-quickstart.elc
+	cd share/lspce && env RUSTFLAGS=-Awarnings cargo build -r -q && ln -snf target/release/liblspce_module.so lspce-module.so 
+
 init.elc: init.el
 	emacs --batch -f batch-byte-compile $<
 	emacs --batch -f batch-native-compile $<

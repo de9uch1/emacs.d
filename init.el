@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2025-06-24
+;; Modified: 2025-06-25
 ;; Version: 0.0.5
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -301,12 +301,12 @@
  '(line-number-current-line ((t (:inherit (hl-line default) :foreground "#f8f8f2" :slant normal :weight normal)))))
 ;; highlight line
 (my:enable-mode global-hl-line-mode)
-(add-hook
- 'doc-view-mode-hook
- (lambda ()
-   (progn
-     (my:disable-mode linum-mode)
-     (my:disable-mode hl-line-mode))))
+;; (add-hook
+;;  'doc-view-mode-hook
+;;  (lambda ()
+;;    (progn
+;;      (my:disable-mode linum-mode)
+;;      (my:disable-mode hl-line-mode))))
 ;; show paren
 (use-package paren
   :ensure nil
@@ -820,10 +820,11 @@
   :hook
   (eglot-managed-mode . eldoc-box-hover-mode)
   (lspce-mode . eldoc-box-hover-mode)
+  ;; (lsp-proxy-mode . eldoc-box-hover-mode)
   ;; ((eldoc-box-hover-mode) . centaur-tabs-local-mode)
   :diminish (eldoc-box-hover-mode eldoc-box-hover-at-point-mode)
   :custom
-  (eldoc-box-lighter nil)
+  (eldoc-box-lighter t)
   (eldoc-box-max-pixel-width 500)
   (eldoc-box-max-pixel-height 400)
   (eldoc-box-only-multi-line (not window-system))
@@ -1089,7 +1090,7 @@ Call this on `flyspell-incorrect-hook'."
          ("M-e r" . lspce-rename)
 		 ("M-e e". lspce-restart-server))
   :hook
-  ((sh-base-mode c++-ts-mode rust-ts-mode rust-mode go-ts-mode lua-ts-mode) . lspce-mode)
+  ((sh-base-mode c++-ts-mode rust-ts-mode rust-mode go-ts-mode lua-ts-mode tex-mode yatex-mode) . lspce-mode)
   ((python-mode python-ts-mode) .
    (lambda ()
      (pyvenv-deactivate)
@@ -1144,6 +1145,28 @@ Call this on `flyspell-incorrect-hook'."
           ))
   )
 
+;; lsp-proxy
+;; (use-package lsp-proxy
+;;   :load-path "share"
+;;   :bind (("M-/" . xref-find-references)
+;;          :prefix-map lsp-proxy-mode-map
+;;          :prefix "M-e"
+;;          ("M-e r" . lsp-proxy-rename)
+;;  		 ("M-e e". lsp-proxy-restart))
+;;   :hook
+;;   ((sh-base-mode c++-ts-mode rust-ts-mode rust-mode go-ts-mode lua-ts-mode tex-mode yatex-mode) . lsp-proxy-mode)
+;;   ((python-mode python-ts-mode) .
+;;    (lambda ()
+;;      (pyvenv-deactivate)
+;;      (my:enable-mode pet-mode)
+;;      (when python-shell-virtualenv-root
+;;        (pyvenv-activate python-shell-virtualenv-root))
+;;      (my:enable-mode lsp-proxy-mode)))
+;;   :custom
+;;   (lsp-proxy-idle-delay 0.05)
+;; )
+
+;; eglot
 ;; (use-package eglot
 ;;   :ensure t
 ;;   :pin gnu
@@ -1154,7 +1177,7 @@ Call this on `flyspell-incorrect-hook'."
 ;;          ("M-e r" . eglot-rename)
 ;; 		 ("M-e e". eglot))
 ;;   :hook
-;;   ((sh-base-mode c++-ts-mode rust-ts-mode rust-mode go-ts-mode lua-ts-mode) . eglot-ensure)
+;;   ((sh-base-mode c++-ts-mode rust-ts-mode rust-mode go-ts-mode lua-ts-mode tex-mode yatex-mode) . eglot-ensure)
 ;;   ((python-mode python-ts-mode) .
 ;;    (lambda ()
 ;;      (pyvenv-deactivate)
@@ -1283,12 +1306,16 @@ Call this on `flyspell-incorrect-hook'."
 (use-package rust-mode
   :mode (("\\.rs$" . rust-mode))
   :ensure t
+  :defer t
   :custom
   (rust-format-on-save t)
-  (rust-mode-treesitter-derive t))
-(use-package cargo
-  :ensure t
-  :hook (rust-mode . cargo-minor-mode))
+  (rust-mode-treesitter-derive t)
+  :config
+  (use-package cargo
+    :ensure t
+    :hook (rust-mode . cargo-minor-mode))
+  )
+
 ;;;; Golang
 (defun go-mode-omnibus ()
   ;; Go code formatting by goimports
