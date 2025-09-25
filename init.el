@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2025-08-14
+;; Modified: 2025-09-25
 ;; Version: 0.0.5
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -1213,7 +1213,9 @@ Call this on `flyspell-incorrect-hook'."
           :reportMissingTypeStubs "none"
           :reportImplicitOverride "none"
          )
-       )))
+       )
+       :python (:pyrefly (:displayTypeErrors "force-on"))
+       ))
   :config
   (use-package eglot-booster
     :after eglot
@@ -1225,7 +1227,9 @@ Call this on `flyspell-incorrect-hook'."
     (eglot-booster-mode))
   (add-to-list
    'eglot-server-programs
-   '((python-mode python-ts-mode) . ("pyrefly" "lsp"))
+   ;; '((python-mode python-ts-mode) . ("pyrefly" "lsp"))
+   '((python-mode python-ts-mode) . ("pyrefly" "lsp" "--indexing-mode" "none"))
+   ;; '((python-mode python-ts-mode) . ("ty" "server"))
    ;; '((python-mode python-ts-mode) . ("basedpyright-langserver" "--stdio"))
    ;; '((python-mode python-ts-mode) . ("pyright-langserver" "--stdio"))
    ;; '((python-mode python-ts-mode) . ("pylsp"))
