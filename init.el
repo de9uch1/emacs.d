@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2025-09-25
+;; Modified: 2025-10-22
 ;; Version: 0.0.5
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -581,9 +581,15 @@
   :bind (("M-p" . consult-project-extra-find)))
 (use-package consult-ghq
   :ensure t
-  :bind (("M-g" . consult-ghq-switch-project))
+  :bind (("M-g" . my:consult-ghq-switch-project))
   :custom
-  (project-switch-commands 'project-find-file))
+  (project-switch-commands 'project-find-file)
+  :config
+  (defun my:consult-ghq-switch-project ()
+    "Switch project from ghq."
+    (interactive)
+    (let ((repo (consult--read (consult-ghq--list-candidates) :prompt "Repo: " :category 'directory)))
+      (funcall consult-ghq-switch-project-function repo))))
 ;; embark -- Emacs Mini-Buffer Actions Rooted in Keymaps
 (use-package embark
   :ensure t
