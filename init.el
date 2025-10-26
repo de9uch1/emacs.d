@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2025-10-22
+;; Modified: 2025-10-26
 ;; Version: 0.0.5
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -222,7 +222,10 @@
 (use-package nerd-icons-completion
   :ensure t
   :after (marginalia nerd-icons)
-  :hook (marginalia-mode . nerd-icons-completion-marginalia-setup))
+  :hook (marginalia-mode . nerd-icons-completion-marginalia-setup)
+  :config
+  (setf (alist-get nil nerd-icons-completion-category-icons)
+        '(nerd-icons-octicon "nf-oct-dot_fill" nerd-icons-silver)))
 (use-package nerd-icons-dired
   :ensure t
   :hook (dired-mode . nerd-icons-dired-mode))
@@ -581,15 +584,9 @@
   :bind (("M-p" . consult-project-extra-find)))
 (use-package consult-ghq
   :ensure t
-  :bind (("M-g" . my:consult-ghq-switch-project))
+  :bind (("M-g" . consult-ghq-switch-project))
   :custom
-  (project-switch-commands 'project-find-file)
-  :config
-  (defun my:consult-ghq-switch-project ()
-    "Switch project from ghq."
-    (interactive)
-    (let ((repo (consult--read (consult-ghq--list-candidates) :prompt "Repo: " :category 'directory)))
-      (funcall consult-ghq-switch-project-function repo))))
+  (project-switch-commands 'project-find-file))
 ;; embark -- Emacs Mini-Buffer Actions Rooted in Keymaps
 (use-package embark
   :ensure t
