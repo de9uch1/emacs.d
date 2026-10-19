@@ -1,6 +1,10 @@
 #!/usr/bin/env make -f
 # -*- mode: makefile-gmake -*-
 
+ifeq ($(shell uname -s),Darwin)
+export MACOSX_DEPLOYMENT_TARGET := $(shell sw_vers -productVersion)
+endif
+
 ELC_TARGETS := $(foreach f,$(wildcard share/*.el),$(basename $(f)).elc)
 
 .DELETE_ON_ERROR:

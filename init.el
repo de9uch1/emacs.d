@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2025-10-26
+;; Modified: 2026-10-08
 ;; Version: 0.0.5
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -357,6 +357,10 @@
  ("C-m" . newline-and-indent)
  ("C-h" . delete-backward-char)
  ("C-c g" . goto-line)) ; C-h -> Backspace
+;; MacOS
+(when (and (eq system-type 'darwin) (eq window-system 'ns))
+  (setq ns-command-modifier (quote meta))
+  (setq ns-alternate-modifier (quote super)))
 ;; .el > .elc
 (setq load-prefer-newer t)
 ;; scroll for one line
