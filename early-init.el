@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi@ai.cs.ehime-u.ac.jp>
 ;; Created: 2018-05-26
-;; Modified: 2025-04-22
+;; Modified: 2026-11-05
 ;; Version: 0.0.5
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -103,7 +103,7 @@
 ;; coding: utf-8-unix
 ;; mode: emacs-lisp
 ;; mode: outline-minor
-;; time-stamp-pattern: "10/Modified:\\\\?[ \t]+%:y-%02m-%02d\\\\?\n"
+;; time-stamp-pattern: "10/Modified:\\\\?[ \t]+%Y-%02m-%02d\\\\?\n"
 ;; End:
 
 ;;; init.el ends here

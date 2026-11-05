@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2026-10-08
+;; Modified: 2026-11-05
 ;; Version: 0.0.5
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -340,15 +340,18 @@
   (exec-path-from-shell-initialize))
 ;; transparent-mode
 (use-package tp-mode
-  :if (eval-and-compile
-        (and window-system
-             (or (not (getenv "WSL_INTEROP"))
-                 (not (eq window-system 'x)))))
+  :if (and window-system
+           (or (not (getenv "WSL_INTEROP"))
+               (not (eq window-system 'x))))
   :load-path "share"
   :commands (tp-mode)
+  :hook (after-init . tp-mode)
   :custom
-  (tp-mode-alpha 95)
-  (tp-mode t))
+  (tp-mode-alpha
+   (if (eq window-system 'ns)
+       75
+     95))
+  )
 
 ;; Indent
 (setq-default tab-width 4)
@@ -713,7 +716,7 @@
     (push #'nerd-icons-corfu-formatter corfu-margin-formatters))
   (use-package corfu-terminal
     :ensure t
-    :if (not window-system)
+    :if (and (not window-system) (version< emacs-version "31"))
     :hook (global-corfu-mode . corfu-terminal-mode))
   ;;;;; orderless
   (use-package orderless
@@ -1781,7 +1784,7 @@ Call this on `flyspell-incorrect-hook'."
   :custom
   (vterm-max-scrollback 10000000)
   (vterm-buffer-name-string "vterm: %s")
-  (vterm-keymap-exceptions '("<f1>" "<f12>" "C-c" "C-x" "C-u" "C-g" "C-l" "M-x" "M-o" "C-v" "M-v" "C-y" "M-y"))
+  (vterm-keymap-exceptions '("<f1>" "<f12>" "C-z" "C-x" "C-u" "C-g" "C-l" "M-x" "M-o" "C-v" "M-v" "C-y" "M-y"))
   :config
   ;; Workaround of not working counsel-yank-pop
   ;; https://github.com/akermu/emacs-libvterm#counsel-yank-pop-doesnt-work
@@ -1794,6 +1797,7 @@ Call this on `flyspell-incorrect-hook'."
   ;;           (apply orig-fun args)))
   ;;     (apply orig-fun args)))
   ;; (advice-add 'counsel-yank-pop-action :around #'vterm-counsel-yank-pop-action))
+  (add-hook 'vterm-mode-hook (lambda () (my:disable-mode display-line-numbers-mode)))
   )
 (use-package vterm-toggle
   :ensure t
@@ -1811,7 +1815,7 @@ Call this on `flyspell-incorrect-hook'."
 ;; coding: utf-8-unix
 ;; mode: emacs-lisp
 ;; mode: outline-minor
-;; time-stamp-pattern: "10/Modified:\\\\?[ \t]+%:y-%02m-%02d\\\\?\n"
+;; time-stamp-pattern: "10/Modified:\\\\?[ \t]+%Y-%02m-%02d\\\\?\n"
 ;; End:
 
 ;;; init.el ends here
