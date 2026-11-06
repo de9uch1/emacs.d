@@ -6,7 +6,7 @@
 ;; Package-Requires: ((emacs "26.1"))
 ;; Author: Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>
 ;; Created: 2018-05-26
-;; Modified: 2026-11-05
+;; Modified: 2026-11-06
 ;; Version: 0.0.5
 ;; Keywords: internal, local
 ;; Human-Keywords: Emacs Initialization
@@ -714,10 +714,11 @@
        ))
     :config
     (push #'nerd-icons-corfu-formatter corfu-margin-formatters))
-  (use-package corfu-terminal
-    :ensure t
-    :if (and (not window-system) (version< emacs-version "31"))
-    :hook (global-corfu-mode . corfu-terminal-mode))
+  (when (version< emacs-version "31")
+    (use-package corfu-terminal
+      :ensure nil
+      :if (and (not window-system) (version< emacs-version "31"))
+      :hook (global-corfu-mode . corfu-terminal-mode)))
   ;;;;; orderless
   (use-package orderless
     :ensure t
@@ -826,7 +827,7 @@
 ;; eldoc
 (use-package eldoc-box
   :ensure t
-  :if window-system
+  :if (or (version< "31" emacs-version) window-system)
   :hook
   (eglot-managed-mode . eldoc-box-hover-mode)
   (lspce-mode . eldoc-box-hover-mode)
@@ -837,8 +838,11 @@
   (eldoc-box-lighter t)
   (eldoc-box-max-pixel-width 500)
   (eldoc-box-max-pixel-height 400)
-  (eldoc-box-only-multi-line (not window-system))
-  (eldoc-box-offset '(16 24 16))
+  ;; (eldoc-box-only-multi-line (not window-system))
+  ;; (eldoc-box-offset '(16 24 16))
+  (eldoc-box-offset (if window-system
+                        '(16 24 16)
+                        '(1 1 1)))
   (eldoc-box-clear-with-C-g t)
   :custom-face
   (eldoc-box-border ((t (:inherit posframe-border :background unspecified))))
